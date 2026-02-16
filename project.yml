@@ -1,0 +1,35 @@
+name: All Aboard
+options:
+  bundleIdPrefix: com.allaboard
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "16.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: "2.6.0"
+
+targets:
+  All Aboard:
+    type: application
+    platform: macOS
+    sources:
+      - AllAboard
+    dependencies:
+      - package: Sparkle
+    settings:
+      base:
+        INFOPLIST_FILE: AllAboard/Info.plist
+        CODE_SIGN_ENTITLEMENTS: AllAboard/AllAboard.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: com.allaboard.app
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: 1
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_HARDENED_RUNTIME: true

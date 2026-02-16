@@ -1,0 +1,16 @@
+# Xcode
+build/
+*.xcuserdata
+DerivedData/
+xcuserdata/
+*.xcworkspace
+
+# macOS
+.DS_Store
+
+# Worker
+worker/node_modules/
+worker/.wrangler/
+
+# Build artifacts
+*.dmg
