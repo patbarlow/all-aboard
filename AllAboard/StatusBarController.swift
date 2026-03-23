@@ -97,30 +97,6 @@ class StatusBarController: NSObject, NSWindowDelegate {
         statusItem.menu = nil
     }
 
-    private func cleanedServiceText(from raw: String) -> String {
-        let prefixes = [
-            "Sydney Trains",
-            "Sydney Metro",
-            "NSW TrainLink",
-            "Sydney Light Rail",
-            "Sydney Buses",
-            "Sydney Ferries"
-        ]
-        var text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        for p in prefixes {
-            if text.hasPrefix(p) {
-                text = text.dropFirst(p.count).trimmingCharacters(in: .whitespacesAndNewlines)
-                break
-            }
-        }
-        if text.hasPrefix("Network ") {
-            text = String(text.dropFirst("Network ".count)).trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        // Collapse extra spaces and remove leading punctuation like '-' or ':' if present
-        text = text.trimmingCharacters(in: CharacterSet(charactersIn: "-:\u{2013}\u{2014} "))
-        return text
-    }
-
     private func menuItem(for journey: Journey) -> NSMenuItem {
         let firstLeg = journey.legs.first
         let lastLeg = journey.legs.last
@@ -129,15 +105,30 @@ class StatusBarController: NSObject, NSWindowDelegate {
         let timeUntil = TimeFormatting.formatTimeUntil(firstLeg?.origin.departureTimePlanned)
         let departTime = TimeFormatting.formatTime(firstLeg?.origin.departureTimePlanned)
         let arriveTime = TimeFormatting.formatTime(lastLeg?.destination.arrivalTimePlanned)
-        let lineName = transportLeg?.transportation?.disassembledName ?? ""
-        let serviceCode: String = transportLeg?.transportation?.name ?? lineName
+
+        // Journey duration from departure to arrival
+        var durationText = ""
+        if let departDate = TimeFormatting.parseTime(firstLeg?.origin.departureTimePlanned),
+           let arriveDate = TimeFormatting.parseTime(lastLeg?.destination.arrivalTimePlanned) {
+            let seconds = Int(arriveDate.timeIntervalSince(departDate))
+            if seconds > 0 { durationText = TimeFormatting.formatDuration(seconds) }
+        }
+
+        // Platform from the first transport leg's departure stop
+        let rawPlatform = transportLeg?.origin.properties?.platformName
+            ?? transportLeg?.origin.properties?.platform
+        var subtitle = durationText
+        if let raw = rawPlatform, !raw.isEmpty {
+            let platformText = raw.lowercased().hasPrefix("platform") ? raw : "Platform \(raw)"
+            subtitle = durationText.isEmpty ? platformText : "\(durationText) · \(platformText)"
+        }
 
         let item = NSMenuItem()
         item.view = makeMenuRow(
             depart: departTime,
             arrive: arriveTime,
             timeUntil: timeUntil,
-            serviceText: cleanedServiceText(from: serviceCode)
+            subtitle: subtitle
         )
         item.target = self
         item.action = #selector(noop)
@@ -254,7 +245,7 @@ class StatusBarController: NSObject, NSWindowDelegate {
         depart: String,
         arrive: String,
         timeUntil: String,
-        serviceText: String
+        subtitle: String
     ) -> NSView {
         class HoverRowView: NSView {
             private var tracking: NSTrackingArea?
@@ -318,8 +309,8 @@ class StatusBarController: NSObject, NSWindowDelegate {
             untilLabel.textColor = .secondaryLabelColor
         }
 
-        // Line 2: service text (smaller, left)
-        let serviceLabel = NSTextField(labelWithString: serviceText)
+        // Line 2: duration · platform (smaller, left)
+        let serviceLabel = NSTextField(labelWithString: subtitle)
         serviceLabel.font = .systemFont(ofSize: 11)
         serviceLabel.textColor = .secondaryLabelColor
         serviceLabel.alignment = .left
