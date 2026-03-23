@@ -70,7 +70,7 @@
 				4E508E0453B2FE572A8E961E /* Networking */,
 				2DA5E9DF99BB458E96F4FAF0 /* Persistence */,
 				76ECBF59AD64353BCCC69538 /* Utilities */,
-				430FA5F12F7178A000EE9303 /* Licensing 2 */,
+				430FA5F12F7178A000EE9303 /* Licensing */,
 				1E7A138FA5E14E56E1DDC01E /* ViewModels */,
 				A36FA9EED4EAF4DB96B4BF01 /* Views */,
 			);
@@ -102,13 +102,13 @@
 			);
 			sourceTree = "<group>";
 		};
-		430FA5F12F7178A000EE9303 /* Licensing 2 */ = {
+		430FA5F12F7178A000EE9303 /* Licensing */ = {
 			isa = PBXGroup;
 			children = (
 				430FA5EF2F7178A000EE9303 /* LicenseActivationView.swift */,
 				430FA5F02F7178A000EE9303 /* LicenseManager.swift */,
 			);
-			path = "Licensing 2";
+			path = Licensing;
 			sourceTree = "<group>";
 		};
 		4E508E0453B2FE572A8E961E /* Networking */ = {
