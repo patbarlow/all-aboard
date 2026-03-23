@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -12,6 +12,8 @@
 		14A7A5B1A768110ED5F5D539 /* TripCreationViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FECBA7D98D5022744CF5452 /* TripCreationViewModel.swift */; };
 		165642C018B707581954B5C7 /* AllAboardApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBB92BD04760D201F400B8E5 /* AllAboardApp.swift */; };
 		1A6FF4B853B7531FDECCCDF9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F6ADA024A62CE2B81A9CDEFD /* Assets.xcassets */; };
+		430FA5F22F7178A000EE9303 /* LicenseActivationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 430FA5EF2F7178A000EE9303 /* LicenseActivationView.swift */; };
+		430FA5F32F7178A000EE9303 /* LicenseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 430FA5F02F7178A000EE9303 /* LicenseManager.swift */; };
 		469B06078DF4065107D9DC05 /* TripStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6049F044EF96494F70E42A /* TripStore.swift */; };
 		6489BD603790B594FC059342 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FEB84E4FAD7F551266AEB1E /* APIClient.swift */; };
 		66EA5820A6E1BFABD214450F /* TripCreationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70ED6174B2E99DD17E4E500B /* TripCreationView.swift */; };
@@ -28,6 +30,8 @@
 		1B863AA604CCB21920920AFA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		1F323A7E1EAAE8598649B765 /* MenuBarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarViewModel.swift; sourceTree = "<group>"; };
 		2FEB84E4FAD7F551266AEB1E /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		430FA5EF2F7178A000EE9303 /* LicenseActivationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseActivationView.swift; sourceTree = "<group>"; };
+		430FA5F02F7178A000EE9303 /* LicenseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseManager.swift; sourceTree = "<group>"; };
 		46A066A0E2F7B40F57C5FC36 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		69D8715A61EC0A55AE995C55 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
 		70ED6174B2E99DD17E4E500B /* TripCreationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripCreationView.swift; sourceTree = "<group>"; };
@@ -66,6 +70,7 @@
 				4E508E0453B2FE572A8E961E /* Networking */,
 				2DA5E9DF99BB458E96F4FAF0 /* Persistence */,
 				76ECBF59AD64353BCCC69538 /* Utilities */,
+				430FA5F12F7178A000EE9303 /* Licensing 2 */,
 				1E7A138FA5E14E56E1DDC01E /* ViewModels */,
 				A36FA9EED4EAF4DB96B4BF01 /* Views */,
 			);
@@ -95,6 +100,15 @@
 				166166002D1E3E651D6BC3D8 /* AllAboard */,
 				9A40BE346BA8E99F2BCD608C /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		430FA5F12F7178A000EE9303 /* Licensing 2 */ = {
+			isa = PBXGroup;
+			children = (
+				430FA5EF2F7178A000EE9303 /* LicenseActivationView.swift */,
+				430FA5F02F7178A000EE9303 /* LicenseManager.swift */,
+			);
+			path = "Licensing 2";
 			sourceTree = "<group>";
 		};
 		4E508E0453B2FE572A8E961E /* Networking */ = {
@@ -190,7 +204,6 @@
 			packageReferences = (
 				E154B729A4419B8C29FECDF2 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -218,6 +231,8 @@
 				6489BD603790B594FC059342 /* APIClient.swift in Sources */,
 				98696DA57BF1DD39CAB7D752 /* APIModels.swift in Sources */,
 				165642C018B707581954B5C7 /* AllAboardApp.swift in Sources */,
+				430FA5F22F7178A000EE9303 /* LicenseActivationView.swift in Sources */,
+				430FA5F32F7178A000EE9303 /* LicenseManager.swift in Sources */,
 				E9548F95E702E4EB1F626A3D /* MenuBarView.swift in Sources */,
 				6B0F4F54273AC5CB0E06C17D /* MenuBarViewModel.swift in Sources */,
 				09EA7924857FDE70EB0BAB98 /* SavedTrip.swift in Sources */,
