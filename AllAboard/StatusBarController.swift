@@ -27,6 +27,7 @@ class StatusBarController: NSObject, NSWindowDelegate {
         if event.type == .rightMouseUp {
             showContextMenu()
         } else {
+            Task { @MainActor in await viewModel.refresh() }
             showTripsMenu()
         }
     }
@@ -123,12 +124,26 @@ class StatusBarController: NSObject, NSWindowDelegate {
             subtitle = durationText.isEmpty ? platformText : "\(durationText) · \(platformText)"
         }
 
+        // Realtime status from planned vs estimated departure
+        var realtimeStatus = ""
+        let originLoc = transportLeg?.origin ?? firstLeg?.origin
+        if let planned = TimeFormatting.parseTime(originLoc?.departureTimePlanned),
+           let estimated = TimeFormatting.parseTime(originLoc?.departureTimeEstimated) {
+            let diffMins = Int(round(estimated.timeIntervalSince(planned) / 60))
+            if diffMins <= 0 {
+                realtimeStatus = "On time"
+            } else {
+                realtimeStatus = "\(diffMins) min\(diffMins == 1 ? "" : "s") late"
+            }
+        }
+
         let item = NSMenuItem()
         item.view = makeMenuRow(
             depart: departTime,
             arrive: arriveTime,
             timeUntil: timeUntil,
-            subtitle: subtitle
+            subtitle: subtitle,
+            realtimeStatus: realtimeStatus
         )
         item.target = self
         item.action = #selector(noop)
@@ -245,7 +260,8 @@ class StatusBarController: NSObject, NSWindowDelegate {
         depart: String,
         arrive: String,
         timeUntil: String,
-        subtitle: String
+        subtitle: String,
+        realtimeStatus: String
     ) -> NSView {
         class HoverRowView: NSView {
             private var tracking: NSTrackingArea?
@@ -292,33 +308,30 @@ class StatusBarController: NSObject, NSWindowDelegate {
         untilLabel.alignment = .right
         untilLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        // Color thresholds for timeUntil
-        let normalized = timeUntil.lowercased().trimmingCharacters(in: .whitespaces)
-        if normalized == "due" || normalized == "1 min" || normalized == "1min" || normalized == "0 min" || normalized == "0min" {
-            untilLabel.textColor = .systemRed
-        } else if let minutes = Int(normalized.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()), minutes <= 2 {
-            // 2 or 3? Requirement says 3 mins orange; make <=2 red covered above, <=3 orange
-            untilLabel.textColor = .systemOrange
-        } else if normalized.hasSuffix("min") || normalized.hasSuffix("mins") {
-            if let minutes = Int(normalized.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()), minutes <= 3 {
-                untilLabel.textColor = .systemOrange
-            } else {
-                untilLabel.textColor = .secondaryLabelColor
-            }
-        } else {
-            untilLabel.textColor = .secondaryLabelColor
-        }
+        untilLabel.textColor = .labelColor
 
-        // Line 2: duration · platform (smaller, left)
+        // Line 2 left: duration · platform
         let serviceLabel = NSTextField(labelWithString: subtitle)
         serviceLabel.font = .systemFont(ofSize: 11)
         serviceLabel.textColor = .secondaryLabelColor
         serviceLabel.alignment = .left
         serviceLabel.translatesAutoresizingMaskIntoConstraints = false
 
+        // Line 2 right: realtime status
+        let statusLabel = NSTextField(labelWithString: realtimeStatus)
+        statusLabel.font = .systemFont(ofSize: 11, weight: .medium)
+        statusLabel.alignment = .right
+        statusLabel.translatesAutoresizingMaskIntoConstraints = false
+        if realtimeStatus.hasSuffix("late") {
+            statusLabel.textColor = .systemRed
+        } else {
+            statusLabel.textColor = .secondaryLabelColor
+        }
+
         container.addSubview(timesLabel)
         container.addSubview(untilLabel)
         container.addSubview(serviceLabel)
+        container.addSubview(statusLabel)
 
         NSLayoutConstraint.activate([
             // Line 1
@@ -326,14 +339,17 @@ class StatusBarController: NSObject, NSWindowDelegate {
             timesLabel.topAnchor.constraint(equalTo: container.topAnchor, constant: vPad),
 
             untilLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -hPad),
-            untilLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            untilLabel.firstBaselineAnchor.constraint(equalTo: timesLabel.firstBaselineAnchor),
             untilLabel.leadingAnchor.constraint(greaterThanOrEqualTo: timesLabel.trailingAnchor, constant: 8),
 
             // Line 2
             serviceLabel.leadingAnchor.constraint(equalTo: timesLabel.leadingAnchor),
             serviceLabel.topAnchor.constraint(equalTo: timesLabel.bottomAnchor, constant: 2),
-            serviceLabel.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor, constant: -hPad),
             serviceLabel.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -vPad),
+
+            statusLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -hPad),
+            statusLabel.firstBaselineAnchor.constraint(equalTo: serviceLabel.firstBaselineAnchor),
+            statusLabel.leadingAnchor.constraint(greaterThanOrEqualTo: serviceLabel.trailingAnchor, constant: 8),
 
             container.heightAnchor.constraint(greaterThanOrEqualToConstant: 2 * vPad + 16 + 14),
 

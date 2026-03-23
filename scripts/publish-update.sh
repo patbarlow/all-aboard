@@ -22,7 +22,7 @@ RELEASES_DIR="$(pwd)/releases"
 mkdir -p "${RELEASES_DIR}"
 
 # Copy the DMG to releases
-cp "build/All Aboard.dmg" "${RELEASES_DIR}/"
+cp "${TMPDIR}allaboard-build/All Aboard.dmg" "${RELEASES_DIR}/"
 
 # Step 3: Generate/update the appcast
 echo "==> Generating appcast..."

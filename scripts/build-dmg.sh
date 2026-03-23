@@ -4,7 +4,7 @@ set -euo pipefail
 # Configuration
 APP_NAME="All Aboard"
 SCHEME="All Aboard"
-BUILD_DIR="$(pwd)/build"
+BUILD_DIR="${TMPDIR}allaboard-build"
 APP_PATH="${BUILD_DIR}/Build/Products/Release/${APP_NAME}.app"
 DMG_NAME="${APP_NAME}.dmg"
 DMG_PATH="${BUILD_DIR}/${DMG_NAME}"
