@@ -31,6 +31,8 @@ struct TripCreationView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
+                    oneOffQuerySection
+
                     if isDrafting {
                         draftCard
                             .transition(.opacity.combined(with: .move(edge: .top)))
@@ -60,6 +62,116 @@ struct TripCreationView: View {
             }
         }
         .frame(width: 420, height: 480)
+    }
+
+    @ViewBuilder
+    private var oneOffQuerySection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Quick Query")
+                    .font(.headline)
+                Spacer()
+                if viewModel.oneOffOrigin != nil, viewModel.oneOffDestination != nil {
+                    Button("Save Trip") {
+                        viewModel.saveOneOffTrip()
+                        onTripsChanged()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                }
+            }
+
+            HStack(spacing: 8) {
+                TextField(
+                    "e.g. trains from Central to Redfern after 5pm today",
+                    text: $viewModel.naturalLanguageQuery
+                )
+                .textFieldStyle(.roundedBorder)
+                .onSubmit {
+                    viewModel.runNaturalLanguageQuery()
+                }
+
+                Button("Find") {
+                    viewModel.runNaturalLanguageQuery()
+                }
+                .buttonStyle(.bordered)
+                .disabled(viewModel.isRunningNaturalLanguageQuery)
+            }
+
+            if viewModel.isRunningNaturalLanguageQuery {
+                HStack(spacing: 6) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Searching train times…")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            if let origin = viewModel.oneOffOrigin, let destination = viewModel.oneOffDestination {
+                Text("\(displayName(origin.disassembledName ?? origin.name)) → \(displayName(destination.disassembledName ?? destination.name))")
+                    .font(.subheadline.weight(.semibold))
+                if let description = viewModel.oneOffDescription {
+                    Text(description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            if let error = viewModel.naturalLanguageError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+
+            if !viewModel.oneOffJourneys.isEmpty {
+                VStack(spacing: 6) {
+                    ForEach(viewModel.oneOffJourneys) { journey in
+                        oneOffJourneyRow(journey)
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func oneOffJourneyRow(_ journey: Journey) -> some View {
+        let firstLeg = journey.legs.first
+        let lastLeg = journey.legs.last
+        let departTime = TimeFormatting.formatTime(firstLeg?.origin.departureTimePlanned)
+        let arriveTime = TimeFormatting.formatTime(lastLeg?.destination.arrivalTimePlanned)
+        let timeUntil = TimeFormatting.formatTimeUntil(firstLeg?.origin.departureTimePlanned)
+        let duration = durationText(for: journey)
+
+        return HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(departTime) → \(arriveTime)")
+                    .font(.subheadline.monospacedDigit())
+                if !duration.isEmpty {
+                    Text(duration)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            Text(timeUntil)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func durationText(for journey: Journey) -> String {
+        guard let departDate = TimeFormatting.parseTime(journey.legs.first?.origin.departureTimePlanned),
+              let arriveDate = TimeFormatting.parseTime(journey.legs.last?.destination.arrivalTimePlanned) else {
+            return ""
+        }
+        let seconds = Int(arriveDate.timeIntervalSince(departDate))
+        guard seconds > 0 else { return "" }
+        return TimeFormatting.formatDuration(seconds)
     }
 
     // MARK: - Helpers
