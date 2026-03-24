@@ -66,36 +66,23 @@ struct TripCreationView: View {
 
     @ViewBuilder
     private var oneOffQuerySection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Quick Query")
-                    .font(.headline)
-                Spacer()
-                if viewModel.oneOffOrigin != nil, viewModel.oneOffDestination != nil {
-                    Button("Save Trip") {
-                        viewModel.saveOneOffTrip()
-                        onTripsChanged()
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Quick Search")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.tertiary)
+
+                TextField("e.g. Strathfield to Chatswood after 5pm", text: $viewModel.naturalLanguageQuery)
+                    .font(.system(size: 16, weight: .semibold))
+                    .textFieldStyle(.plain)
+                    .onSubmit {
+                        viewModel.runNaturalLanguageQuery()
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
-                }
-            }
-
-            HStack(spacing: 8) {
-                TextField(
-                    "e.g. trains from Central to Redfern after 5pm today",
-                    text: $viewModel.naturalLanguageQuery
-                )
-                .textFieldStyle(.roundedBorder)
-                .onSubmit {
-                    viewModel.runNaturalLanguageQuery()
-                }
-
-                Button("Find") {
-                    viewModel.runNaturalLanguageQuery()
-                }
-                .buttonStyle(.bordered)
-                .disabled(viewModel.isRunningNaturalLanguageQuery)
+                    .onKeyPress(.escape) {
+                        viewModel.naturalLanguageQuery = ""
+                        viewModel.clearOneOffResults()
+                        return .handled
+                    }
             }
 
             if viewModel.isRunningNaturalLanguageQuery {
@@ -103,25 +90,40 @@ struct TripCreationView: View {
                     ProgressView()
                         .controlSize(.small)
                     Text("Searching train times…")
-                        .font(.caption)
+                        .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                 }
+                .padding(.top, 8)
             }
 
             if let origin = viewModel.oneOffOrigin, let destination = viewModel.oneOffDestination {
-                Text("\(displayName(origin.disassembledName ?? origin.name)) → \(displayName(destination.disassembledName ?? destination.name))")
-                    .font(.subheadline.weight(.semibold))
-                if let description = viewModel.oneOffDescription {
-                    Text(description)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("\(displayName(origin.disassembledName ?? origin.name)) → \(displayName(destination.disassembledName ?? destination.name))")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Save Trip") {
+                            viewModel.saveOneOffTrip()
+                            onTripsChanged()
+                        }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 12, weight: .semibold))
+                    }
+                    if let description = viewModel.oneOffDescription {
+                        Text(description)
+                            .font(.system(size: 13))
+                            .foregroundStyle(.secondary)
+                    }
                 }
+                .padding(.top, 12)
             }
 
             if let error = viewModel.naturalLanguageError {
                 Text(error)
-                    .font(.caption)
+                    .font(.system(size: 13))
                     .foregroundStyle(.red)
+                    .padding(.top, 8)
             }
 
             if !viewModel.oneOffJourneys.isEmpty {
@@ -130,41 +132,71 @@ struct TripCreationView: View {
                         oneOffJourneyRow(journey)
                     }
                 }
+                .padding(.top, 10)
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(Color.accentColor.opacity(0.3), lineWidth: 1.5)
+        )
+        .animation(.spring(duration: 0.35), value: viewModel.oneOffJourneys.map(\.id))
+        .animation(.spring(duration: 0.3), value: viewModel.isRunningNaturalLanguageQuery)
     }
 
     private func oneOffJourneyRow(_ journey: Journey) -> some View {
         let firstLeg = journey.legs.first
         let lastLeg = journey.legs.last
+        let transportLeg = journey.legs.first { $0.transportation != nil }
         let departTime = TimeFormatting.formatTime(firstLeg?.origin.departureTimePlanned)
         let arriveTime = TimeFormatting.formatTime(lastLeg?.destination.arrivalTimePlanned)
         let timeUntil = TimeFormatting.formatTimeUntil(firstLeg?.origin.departureTimePlanned)
-        let duration = durationText(for: journey)
+        let subtitle = journeySubtitle(for: journey, transportLeg: transportLeg)
+        let realtimeStatus = realtimeStatus(for: transportLeg ?? firstLeg)
 
         return HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(departTime) → \(arriveTime)")
                     .font(.subheadline.monospacedDigit())
-                if !duration.isEmpty {
-                    Text(duration)
-                        .font(.caption)
+                if !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
             }
             Spacer()
-            Text(timeUntil)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(timeUntil)
+                    .font(.system(size: 12, weight: .semibold))
+                if !realtimeStatus.isEmpty {
+                    Text(realtimeStatus)
+                        .font(.system(size: 11))
+                        .foregroundStyle(realtimeStatus.contains("late") ? .red : .secondary)
+                }
+            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .background(Color.white.opacity(0.35), in: RoundedRectangle(cornerRadius: 8))
     }
 
-    private func durationText(for journey: Journey) -> String {
+    private func journeySubtitle(for journey: Journey, transportLeg: Leg?) -> String {
+        let duration = journeyDurationText(for: journey)
+        let rawPlatform = transportLeg?.origin.properties?.platformName
+            ?? transportLeg?.origin.properties?.platform
+        guard let rawPlatform, !rawPlatform.isEmpty else {
+            return duration
+        }
+
+        let platform = rawPlatform.lowercased().hasPrefix("platform") ? rawPlatform : "Platform \(rawPlatform)"
+        if duration.isEmpty { return platform }
+        return "\(duration) · \(platform)"
+    }
+
+    private func journeyDurationText(for journey: Journey) -> String {
         guard let departDate = TimeFormatting.parseTime(journey.legs.first?.origin.departureTimePlanned),
               let arriveDate = TimeFormatting.parseTime(journey.legs.last?.destination.arrivalTimePlanned) else {
             return ""
@@ -172,6 +204,17 @@ struct TripCreationView: View {
         let seconds = Int(arriveDate.timeIntervalSince(departDate))
         guard seconds > 0 else { return "" }
         return TimeFormatting.formatDuration(seconds)
+    }
+
+    private func realtimeStatus(for origin: LegLocation?) -> String {
+        guard let planned = TimeFormatting.parseTime(origin?.departureTimePlanned),
+              let estimated = TimeFormatting.parseTime(origin?.departureTimeEstimated) else {
+            return ""
+        }
+
+        let diffMins = Int(round(estimated.timeIntervalSince(planned) / 60))
+        if diffMins <= 0 { return "On time" }
+        return "\(diffMins) min\(diffMins == 1 ? "" : "s") late"
     }
 
     // MARK: - Helpers

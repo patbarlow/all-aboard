@@ -104,7 +104,7 @@ class TripCreationViewModel {
 
         let parsed = NaturalLanguageTripQueryParser.parse(prompt)
         guard let originName = parsed.origin, let destinationName = parsed.destination else {
-            naturalLanguageError = "Couldn’t parse route. Use: from [origin] to [destination] [after/before time]"
+            naturalLanguageError = "Couldn’t parse route. Try: Central to Redfern after 5pm"
             oneOffJourneys = []
             oneOffOrigin = nil
             oneOffDestination = nil
@@ -224,7 +224,7 @@ private enum NaturalLanguageTripQueryParser {
 
         let lower = normalized.lowercased()
         let routeRegex = try? NSRegularExpression(
-            pattern: #"(?:from\s+)(.+?)(?:\s+to\s+)(.+?)(?=(?:\s+(?:after|before)\b)|$)"#,
+            pattern: #"(?:(?:from\s+)?)(.+?)(?:\s+to\s+)(.+?)(?=(?:\s+(?:after|before)\b)|$)"#,
             options: []
         )
 
