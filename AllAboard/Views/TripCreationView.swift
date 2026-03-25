@@ -163,7 +163,7 @@ struct TripCreationView: View {
         let arriveTime = TimeFormatting.formatTime(lastLeg?.destination.arrivalTimePlanned)
         let timeUntil = TimeFormatting.formatTimeUntil(firstLeg?.origin.departureTimePlanned)
         let subtitle = journeySubtitle(for: journey, transportLeg: transportLeg)
-        let realtimeStatus = realtimeStatus(for: transportLeg ?? firstLeg)
+        let realtimeStatus = realtimeStatus(for: transportLeg?.origin ?? firstLeg?.origin)
 
         return HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
@@ -666,6 +666,8 @@ struct TripCreationView: View {
     private func reverseTrip(_ id: String) {
         store.reverseTrip(id: id)
         onTripsChanged()
+    }
+
     // MARK: - Release Channels / Feature Flags
 
     private var releaseChannelSection: some View {

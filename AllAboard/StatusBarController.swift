@@ -175,7 +175,7 @@ class StatusBarController: NSObject, NSWindowDelegate {
                 tripId: tripId,
                 departureTimePlanned: departureTimePlanned
             )
-        )
+        }
         item.isEnabled = true
         return item
     }
