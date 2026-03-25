@@ -49,25 +49,38 @@ actor APIClient {
     // MARK: - Trip Planning
 
     func planTrip(originId: String, destinationId: String) async throws -> [Journey] {
-        let now = Date()
+        try await planTrip(
+            originId: originId,
+            destinationId: destinationId,
+            date: Date(),
+            isDepartureTime: true
+        )
+    }
+
+    func planTrip(
+        originId: String,
+        destinationId: String,
+        date: Date,
+        isDepartureTime: Bool
+    ) async throws -> [Journey] {
         let calendar = Calendar.current
         let dateStr = String(
             format: "%04d%02d%02d",
-            calendar.component(.year, from: now),
-            calendar.component(.month, from: now),
-            calendar.component(.day, from: now)
+            calendar.component(.year, from: date),
+            calendar.component(.month, from: date),
+            calendar.component(.day, from: date)
         )
         let timeStr = String(
             format: "%02d%02d",
-            calendar.component(.hour, from: now),
-            calendar.component(.minute, from: now)
+            calendar.component(.hour, from: date),
+            calendar.component(.minute, from: date)
         )
 
         var components = URLComponents(string: "\(baseURL)/trip")!
         components.queryItems = [
             URLQueryItem(name: "outputFormat", value: "rapidJSON"),
             URLQueryItem(name: "coordOutputFormat", value: "EPSG:4326"),
-            URLQueryItem(name: "depArrMacro", value: "dep"),
+            URLQueryItem(name: "depArrMacro", value: isDepartureTime ? "dep" : "arr"),
             URLQueryItem(name: "type_origin", value: "stop"),
             URLQueryItem(name: "name_origin", value: originId),
             URLQueryItem(name: "type_destination", value: "stop"),
