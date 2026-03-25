@@ -1,10 +1,58 @@
 import SwiftUI
 import Sparkle
 
+enum ReleaseChannel: String {
+    case stable
+    case beta
+}
+
+enum AppSettings {
+    static let releaseChannelKey = "release-channel"
+    static let enableBetaFeaturesKey = "enable-beta-features"
+    static let stableFeedURL = "https://raw.githubusercontent.com/patbarlow/all-aboard/main/appcast.xml"
+    static let betaFeedURL = "https://raw.githubusercontent.com/patbarlow/all-aboard/main/appcast-beta.xml"
+
+    static var releaseChannel: ReleaseChannel {
+        get {
+            guard let raw = UserDefaults.standard.string(forKey: releaseChannelKey),
+                  let channel = ReleaseChannel(rawValue: raw) else {
+                return .stable
+            }
+            return channel
+        }
+        set {
+            UserDefaults.standard.set(newValue.rawValue, forKey: releaseChannelKey)
+        }
+    }
+
+    static var enableBetaFeatures: Bool {
+        get { UserDefaults.standard.bool(forKey: enableBetaFeaturesKey) }
+        set { UserDefaults.standard.set(newValue, forKey: enableBetaFeaturesKey) }
+    }
+}
+
+final class UpdateFeedDelegate: NSObject, SPUUpdaterDelegate {
+    func feedURLString(for updater: SPUUpdater) -> String? {
+        switch AppSettings.releaseChannel {
+        case .stable: return AppSettings.stableFeedURL
+        case .beta: return AppSettings.betaFeedURL
+        }
+    }
+}
+
 @main
 struct AllAboardApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    private let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+    private let updateFeedDelegate = UpdateFeedDelegate()
+    private var updaterController: SPUStandardUpdaterController
+
+    init() {
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: updateFeedDelegate,
+            userDriverDelegate: nil
+        )
+    }
 
     var body: some Scene {
         Settings {

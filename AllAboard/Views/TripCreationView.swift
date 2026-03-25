@@ -12,6 +12,8 @@ struct TripCreationView: View {
     @State private var draggingTripId: String?
     @State private var dragOriginIndex: Int = 0
     @State private var dragTranslation: CGFloat = 0
+    @State private var releaseChannel = AppSettings.releaseChannel
+    @State private var betaFeaturesEnabled = AppSettings.enableBetaFeatures
     @FocusState private var focusedField: DraftField?
 
     private enum DraftField: Hashable {
@@ -40,6 +42,12 @@ struct TripCreationView: View {
                         savedTripsSection
                     } else if !isDrafting {
                         emptyState
+                    }
+
+                    releaseChannelSection
+
+                    if betaFeaturesEnabled {
+                        betaFeaturesSection
                     }
                 }
                 .padding(20)
@@ -482,6 +490,53 @@ struct TripCreationView: View {
         for id in ids { store.removeTrip(id: id) }
         selection.removeAll()
         onTripsChanged()
+    }
+
+    // MARK: - Release Channels / Feature Flags
+
+    private var releaseChannelSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Release Channel")
+                .font(.headline)
+
+            Picker("Channel", selection: $releaseChannel) {
+                Text("Stable").tag(ReleaseChannel.stable)
+                Text("Beta").tag(ReleaseChannel.beta)
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: releaseChannel) { _, newValue in
+                AppSettings.releaseChannel = newValue
+            }
+
+            Toggle("Enable beta feature toggles", isOn: $betaFeaturesEnabled)
+                .onChange(of: betaFeaturesEnabled) { _, newValue in
+                    AppSettings.enableBetaFeatures = newValue
+                }
+
+            Text("Restart the app after changing channel, then use “Check for Updates…” from the menu.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var betaFeaturesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Beta Tools")
+                .font(.headline)
+            Text("Use these while testing in-progress work.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Button("Refresh departures now") {
+                onTripsChanged()
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
     }
 }
 
