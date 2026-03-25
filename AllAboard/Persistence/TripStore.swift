@@ -51,6 +51,20 @@ class TripStore {
         save()
     }
 
+    func reverseTrip(id: String) {
+        guard let index = savedTrips.firstIndex(where: { $0.id == id }) else { return }
+        let trip = savedTrips[index]
+        let reversed = SavedTrip(
+            id: trip.id,
+            name: "\(trip.destination.name) \u{2192} \(trip.origin.name)",
+            origin: trip.destination,
+            destination: trip.origin,
+            createdAt: trip.createdAt
+        )
+        savedTrips[index] = reversed
+        save()
+    }
+
     private func load() {
         guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
         do {
@@ -72,4 +86,3 @@ class TripStore {
         }
     }
 }
-
