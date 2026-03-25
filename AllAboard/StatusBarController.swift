@@ -3,10 +3,17 @@ import SwiftUI
 import Sparkle
 
 class StatusBarController: NSObject, NSWindowDelegate {
+    private struct PinnedRow: Equatable {
+        let tripId: String
+        let departureTimePlanned: String
+    }
+
     private var statusItem: NSStatusItem
     private var settingsWindow: NSWindow?
     private let store: TripStore
     private let viewModel: MenuBarViewModel
+    private var pinnedRow: PinnedRow?
+    private var pinCountdownTimer: Timer?
 
     init(store: TripStore, viewModel: MenuBarViewModel) {
         self.store = store
@@ -16,10 +23,18 @@ class StatusBarController: NSObject, NSWindowDelegate {
 
         if let button = statusItem.button {
             button.image = NSImage(systemSymbolName: "tram.fill", accessibilityDescription: "All Aboard")
+            button.title = " All Aboard"
             button.target = self
             button.action = #selector(handleClick(_:))
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
+
+        updateStatusBarButtonTitle()
+        startPinCountdownUpdates()
+    }
+
+    deinit {
+        pinCountdownTimer?.invalidate()
     }
 
     @objc private func handleClick(_ sender: NSStatusBarButton) {
@@ -37,6 +52,8 @@ class StatusBarController: NSObject, NSWindowDelegate {
     private func showTripsMenu() {
         let menu = NSMenu()
         let trips = viewModel.tripsWithJourneys
+
+        syncPinnedRowWithLatestJourneys()
 
         if trips.isEmpty && store.savedTrips.isEmpty {
             let item = NSMenuItem(title: "Right-click to add a trip", action: nil, keyEquivalent: "")
@@ -87,7 +104,7 @@ class StatusBarController: NSObject, NSWindowDelegate {
                     menu.addItem(item)
                 } else {
                     for journey in trip.journeys {
-                        menu.addItem(menuItem(for: journey))
+                        menu.addItem(menuItem(for: journey, tripId: trip.id))
                     }
                 }
             }
@@ -98,10 +115,11 @@ class StatusBarController: NSObject, NSWindowDelegate {
         statusItem.menu = nil
     }
 
-    private func menuItem(for journey: Journey) -> NSMenuItem {
+    private func menuItem(for journey: Journey, tripId: String) -> NSMenuItem {
         let firstLeg = journey.legs.first
         let lastLeg = journey.legs.last
         let transportLeg = journey.legs.first { $0.transportation != nil }
+        let departureTimePlanned = firstLeg?.origin.departureTimePlanned ?? ""
 
         let timeUntil = TimeFormatting.formatTimeUntil(firstLeg?.origin.departureTimePlanned)
         let departTime = TimeFormatting.formatTime(firstLeg?.origin.departureTimePlanned)
@@ -138,15 +156,23 @@ class StatusBarController: NSObject, NSWindowDelegate {
         }
 
         let item = NSMenuItem()
+        let isPinned = pinnedRow == PinnedRow(
+            tripId: tripId,
+            departureTimePlanned: departureTimePlanned
+        )
         item.view = makeMenuRow(
             depart: departTime,
             arrive: arriveTime,
             timeUntil: timeUntil,
             subtitle: subtitle,
-            realtimeStatus: realtimeStatus
+            realtimeStatus: realtimeStatus,
+            isPinned: isPinned
+        ) { [weak self] in
+            self?.togglePinnedRow(
+                tripId: tripId,
+                departureTimePlanned: departureTimePlanned
+            )
         )
-        item.target = self
-        item.action = #selector(noop)
         item.isEnabled = true
         return item
     }
@@ -250,8 +276,69 @@ class StatusBarController: NSObject, NSWindowDelegate {
         NSApp.terminate(nil)
     }
 
-    @objc private func noop() {
-        // Intentionally empty: enables menu items without performing an action
+    private func togglePinnedRow(tripId: String, departureTimePlanned: String) {
+        let selectedRow = PinnedRow(
+            tripId: tripId,
+            departureTimePlanned: departureTimePlanned
+        )
+        if pinnedRow == selectedRow {
+            pinnedRow = nil
+        } else {
+            pinnedRow = selectedRow
+        }
+
+        updateStatusBarButtonTitle()
+        statusItem.menu?.cancelTracking()
+        statusItem.menu = nil
+    }
+
+    private func syncPinnedRowWithLatestJourneys() {
+        guard let pinnedRow else {
+            updateStatusBarButtonTitle()
+            return
+        }
+
+        let stillExists = viewModel.tripsWithJourneys.contains { trip in
+            trip.id == pinnedRow.tripId
+                && trip.journeys.contains { journey in
+                    journey.legs.first?.origin.departureTimePlanned == pinnedRow.departureTimePlanned
+                }
+        }
+
+        if !stillExists {
+            self.pinnedRow = nil
+        }
+
+        updateStatusBarButtonTitle()
+    }
+
+    private func updateStatusBarButtonTitle() {
+        guard let button = statusItem.button else { return }
+
+        let baseTitle = " All Aboard"
+        guard let pinnedRow else {
+            button.title = baseTitle
+            return
+        }
+
+        let pinnedJourney = viewModel.tripsWithJourneys
+            .first(where: { $0.id == pinnedRow.tripId })?
+            .journeys
+            .first(where: { $0.legs.first?.origin.departureTimePlanned == pinnedRow.departureTimePlanned })
+
+        let minutesUntil = TimeFormatting.formatTimeUntil(pinnedJourney?.legs.first?.origin.departureTimePlanned)
+        if minutesUntil.isEmpty {
+            button.title = baseTitle
+        } else {
+            button.title = "\(baseTitle)  \(minutesUntil)"
+        }
+    }
+
+    private func startPinCountdownUpdates() {
+        pinCountdownTimer?.invalidate()
+        pinCountdownTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+            self?.updateStatusBarButtonTitle()
+        }
     }
 
     // MARK: - Menu Row View
@@ -261,11 +348,16 @@ class StatusBarController: NSObject, NSWindowDelegate {
         arrive: String,
         timeUntil: String,
         subtitle: String,
-        realtimeStatus: String
+        realtimeStatus: String,
+        isPinned: Bool,
+        onSelect: @escaping () -> Void
     ) -> NSView {
         class HoverRowView: NSView {
             private var tracking: NSTrackingArea?
             var isHovered: Bool = false { didSet { needsDisplay = true } }
+            var isPinned: Bool = false { didSet { needsDisplay = true } }
+            var onSelect: (() -> Void)?
+
             override func updateTrackingAreas() {
                 super.updateTrackingAreas()
                 if let tracking { removeTrackingArea(tracking) }
@@ -275,14 +367,17 @@ class StatusBarController: NSObject, NSWindowDelegate {
             }
             override func mouseEntered(with event: NSEvent) { isHovered = true }
             override func mouseExited(with event: NSEvent) { isHovered = false }
+            override func mouseDown(with event: NSEvent) {
+                onSelect?()
+            }
             override func draw(_ dirtyRect: NSRect) {
                 super.draw(dirtyRect)
                 // Draw a standard-looking hover highlight: inset, rounded, and using system background
-                if isHovered {
+                if isHovered || isPinned {
                     let insetRect = bounds.insetBy(dx: 6, dy: 3)
                     let path = NSBezierPath(roundedRect: insetRect, xRadius: 6, yRadius: 6)
-                    // Use subtle, low-opacity system fill for hover highlight
-                    NSColor.labelColor.withAlphaComponent(0.06).setFill()
+                    let alpha: CGFloat = isPinned ? 0.14 : 0.06
+                    NSColor.labelColor.withAlphaComponent(alpha).setFill()
                     path.fill()
                 }
             }
@@ -290,6 +385,8 @@ class StatusBarController: NSObject, NSWindowDelegate {
 
         let container = HoverRowView()
         container.translatesAutoresizingMaskIntoConstraints = false
+        container.isPinned = isPinned
+        container.onSelect = onSelect
 
         let hPad: CGFloat = 12
         let vPad: CGFloat = 6
@@ -308,7 +405,7 @@ class StatusBarController: NSObject, NSWindowDelegate {
         untilLabel.alignment = .right
         untilLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        untilLabel.textColor = .labelColor
+        untilLabel.textColor = isPinned ? .controlAccentColor : .labelColor
 
         // Line 2 left: duration · platform
         let serviceLabel = NSTextField(labelWithString: subtitle)
@@ -360,4 +457,3 @@ class StatusBarController: NSObject, NSWindowDelegate {
         return container
     }
 }
-
