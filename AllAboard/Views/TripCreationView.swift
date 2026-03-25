@@ -339,8 +339,9 @@ struct TripCreationView: View {
                             }
                         }
                         .zIndex(isDragging ? 1 : 0)
-                        .highPriorityGesture(
-                            TapGesture().onEnded { handleCardTap(trip.id) }
+                        .gesture(
+                            TapGesture().onEnded { handleCardTap(trip.id) },
+                            including: .gesture
                         )
                         .gesture(
                             DragGesture(minimumDistance: 14)
@@ -423,6 +424,21 @@ struct TripCreationView: View {
         let isSelected = selection.contains(trip.id)
 
         return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Spacer()
+                Button {
+                    reverseTrip(trip.id)
+                } label: {
+                    Image(systemName: "arrow.left.arrow.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(6)
+                        .background(.background.opacity(0.7), in: RoundedRectangle(cornerRadius: 8))
+                }
+                .buttonStyle(.plain)
+                .help("Swap origin and destination")
+            }
+
             VStack(alignment: .leading, spacing: 2) {
                 Text("From")
                     .font(.system(size: 13))
@@ -481,6 +497,11 @@ struct TripCreationView: View {
         let ids = selection
         for id in ids { store.removeTrip(id: id) }
         selection.removeAll()
+        onTripsChanged()
+    }
+
+    private func reverseTrip(_ id: String) {
+        store.reverseTrip(id: id)
         onTripsChanged()
     }
 }
