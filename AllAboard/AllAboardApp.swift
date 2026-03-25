@@ -43,16 +43,6 @@ final class UpdateFeedDelegate: NSObject, SPUUpdaterDelegate {
 @main
 struct AllAboardApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    private let updateFeedDelegate = UpdateFeedDelegate()
-    private var updaterController: SPUStandardUpdaterController
-
-    init() {
-        updaterController = SPUStandardUpdaterController(
-            startingUpdater: true,
-            updaterDelegate: updateFeedDelegate,
-            userDriverDelegate: nil
-        )
-    }
 
     var body: some Scene {
         Settings {
@@ -71,6 +61,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     lazy var viewModel = MenuBarViewModel(store: store)
     private var statusBarController: StatusBarController?
     private var activationWindow: NSWindow?
+
+    private let updateFeedDelegate = UpdateFeedDelegate()
+    let updaterController: SPUStandardUpdaterController
+
+    override init() {
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: updateFeedDelegate,
+            userDriverDelegate: nil
+        )
+        super.init()
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if LicenseManager.shared.isActivated {
@@ -95,7 +97,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         activationWindow?.close()
         activationWindow = nil
         if statusBarController == nil {
-            statusBarController = StatusBarController(store: store, viewModel: viewModel)
+            statusBarController = StatusBarController(store: store, viewModel: viewModel, updaterController: updaterController)
             viewModel.startAutoRefreshIfNeeded()
         }
     }

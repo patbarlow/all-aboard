@@ -12,13 +12,15 @@ class StatusBarController: NSObject, NSWindowDelegate {
     private var settingsWindow: NSWindow?
     private let store: TripStore
     private let viewModel: MenuBarViewModel
+    private let updaterController: SPUStandardUpdaterController
     private var pinnedRow: PinnedRow?
     private var pinCountdownTimer: Timer?
     private let liveTripCardController = LiveTripCardPanelController()
 
-    init(store: TripStore, viewModel: MenuBarViewModel) {
+    init(store: TripStore, viewModel: MenuBarViewModel, updaterController: SPUStandardUpdaterController) {
         self.store = store
         self.viewModel = viewModel
+        self.updaterController = updaterController
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
 
@@ -288,7 +290,7 @@ class StatusBarController: NSObject, NSWindowDelegate {
     }
 
     @objc private func checkForUpdates() {
-        SUUpdater.shared()?.checkForUpdates(nil)
+        updaterController.checkForUpdates(nil)
     }
 
     @objc private func quitApp() {
