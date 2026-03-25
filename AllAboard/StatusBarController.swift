@@ -14,6 +14,7 @@ class StatusBarController: NSObject, NSWindowDelegate {
     private let viewModel: MenuBarViewModel
     private var pinnedRow: PinnedRow?
     private var pinCountdownTimer: Timer?
+    private let liveTripCardController = LiveTripCardPanelController()
 
     init(store: TripStore, viewModel: MenuBarViewModel) {
         self.store = store
@@ -231,6 +232,13 @@ class StatusBarController: NSObject, NSWindowDelegate {
         refreshItem.target = self
         menu.addItem(refreshItem)
 
+        // Floating live trip card exploration
+        let cardTitle = liveTripCardController.isVisible ? "Hide Live Trip Card" : "Show Live Trip Card"
+        let liveCardItem = NSMenuItem(title: cardTitle, action: #selector(toggleLiveTripCard), keyEquivalent: "l")
+        liveCardItem.keyEquivalentModifierMask = [.command]
+        liveCardItem.target = self
+        menu.addItem(liveCardItem)
+
         menu.addItem(.separator())
 
         // Quit
@@ -248,6 +256,17 @@ class StatusBarController: NSObject, NSWindowDelegate {
     @objc private func refreshNow() {
         Task { @MainActor in
             await viewModel.refresh()
+        }
+    }
+
+    @objc private func toggleLiveTripCard() {
+        if liveTripCardController.isVisible {
+            liveTripCardController.close()
+            return
+        }
+
+        if let snapshot = liveTripCardSnapshot() {
+            liveTripCardController.show(snapshot: snapshot)
         }
     }
 
@@ -339,6 +358,45 @@ class StatusBarController: NSObject, NSWindowDelegate {
         pinCountdownTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             self?.updateStatusBarButtonTitle()
         }
+    }
+
+    private func liveTripCardSnapshot() -> LiveTripCardSnapshot? {
+        guard let trip = viewModel.tripsWithJourneys.first,
+              let journey = trip.journeys.first else {
+            return nil
+        }
+
+        let firstLeg = journey.legs.first
+        let lastLeg = journey.legs.last
+        let transportLeg = journey.legs.first { $0.transportation != nil }
+        let currentStop = transportLeg?.origin.name ?? firstLeg?.origin.name ?? trip.origin.name
+
+        let plannedISO = (transportLeg?.origin.departureTimePlanned ?? firstLeg?.origin.departureTimePlanned)
+        let departTime = TimeFormatting.formatTime(plannedISO)
+        let arriveTime = TimeFormatting.formatTime(lastLeg?.destination.arrivalTimePlanned)
+
+        let platformRaw = transportLeg?.origin.properties?.platformName
+            ?? transportLeg?.origin.properties?.platform
+            ?? "TBD"
+        let platformText = platformRaw.lowercased().hasPrefix("platform") ? platformRaw : "Platform \(platformRaw)"
+
+        var statusText = "Live"
+        if let planned = TimeFormatting.parseTime(transportLeg?.origin.departureTimePlanned ?? firstLeg?.origin.departureTimePlanned),
+           let estimated = TimeFormatting.parseTime(transportLeg?.origin.departureTimeEstimated ?? firstLeg?.origin.departureTimeEstimated) {
+            let diffMins = Int(round(estimated.timeIntervalSince(planned) / 60))
+            statusText = diffMins <= 0 ? "On time" : "\(diffMins) min\(diffMins == 1 ? "" : "s") late"
+        }
+
+        return LiveTripCardSnapshot(
+            tripName: trip.name,
+            route: "\(trip.origin.name) → \(trip.destination.name)",
+            departureISOTime: plannedISO,
+            departureDisplay: departTime,
+            arrivalDisplay: arriveTime,
+            statusText: statusText,
+            platformText: platformText,
+            currentStopText: "Current stop: \(currentStop)"
+        )
     }
 
     // MARK: - Menu Row View

@@ -12,6 +12,8 @@ struct TripCreationView: View {
     @State private var draggingTripId: String?
     @State private var dragOriginIndex: Int = 0
     @State private var dragTranslation: CGFloat = 0
+    @State private var releaseChannel = AppSettings.releaseChannel
+    @State private var betaFeaturesEnabled = AppSettings.enableBetaFeatures
     @FocusState private var focusedField: DraftField?
 
     private enum DraftField: Hashable {
@@ -31,6 +33,8 @@ struct TripCreationView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
+                    oneOffQuerySection
+
                     if isDrafting {
                         draftCard
                             .transition(.opacity.combined(with: .move(edge: .top)))
@@ -40,6 +44,12 @@ struct TripCreationView: View {
                         savedTripsSection
                     } else if !isDrafting {
                         emptyState
+                    }
+
+                    releaseChannelSection
+
+                    if betaFeaturesEnabled {
+                        betaFeaturesSection
                     }
                 }
                 .padding(20)
@@ -60,6 +70,159 @@ struct TripCreationView: View {
             }
         }
         .frame(width: 420, height: 480)
+    }
+
+    @ViewBuilder
+    private var oneOffQuerySection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Quick Search")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.tertiary)
+
+                TextField("e.g. Strathfield to Chatswood after 5pm", text: $viewModel.naturalLanguageQuery)
+                    .font(.system(size: 16, weight: .semibold))
+                    .textFieldStyle(.plain)
+                    .onSubmit {
+                        viewModel.runNaturalLanguageQuery()
+                    }
+                    .onKeyPress(.escape) {
+                        viewModel.naturalLanguageQuery = ""
+                        viewModel.clearOneOffResults()
+                        return .handled
+                    }
+            }
+
+            if viewModel.isRunningNaturalLanguageQuery {
+                HStack(spacing: 6) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Searching train times…")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.top, 8)
+            }
+
+            if let origin = viewModel.oneOffOrigin, let destination = viewModel.oneOffDestination {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("\(displayName(origin.disassembledName ?? origin.name)) → \(displayName(destination.disassembledName ?? destination.name))")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Save Trip") {
+                            viewModel.saveOneOffTrip()
+                            onTripsChanged()
+                        }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 12, weight: .semibold))
+                    }
+                    if let description = viewModel.oneOffDescription {
+                        Text(description)
+                            .font(.system(size: 13))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.top, 12)
+            }
+
+            if let error = viewModel.naturalLanguageError {
+                Text(error)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.red)
+                    .padding(.top, 8)
+            }
+
+            if !viewModel.oneOffJourneys.isEmpty {
+                VStack(spacing: 6) {
+                    ForEach(viewModel.oneOffJourneys) { journey in
+                        oneOffJourneyRow(journey)
+                    }
+                }
+                .padding(.top, 10)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(Color.accentColor.opacity(0.3), lineWidth: 1.5)
+        )
+        .animation(.spring(duration: 0.35), value: viewModel.oneOffJourneys.map(\.id))
+        .animation(.spring(duration: 0.3), value: viewModel.isRunningNaturalLanguageQuery)
+    }
+
+    private func oneOffJourneyRow(_ journey: Journey) -> some View {
+        let firstLeg = journey.legs.first
+        let lastLeg = journey.legs.last
+        let transportLeg = journey.legs.first { $0.transportation != nil }
+        let departTime = TimeFormatting.formatTime(firstLeg?.origin.departureTimePlanned)
+        let arriveTime = TimeFormatting.formatTime(lastLeg?.destination.arrivalTimePlanned)
+        let timeUntil = TimeFormatting.formatTimeUntil(firstLeg?.origin.departureTimePlanned)
+        let subtitle = journeySubtitle(for: journey, transportLeg: transportLeg)
+        let realtimeStatus = realtimeStatus(for: transportLeg ?? firstLeg)
+
+        return HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(departTime) → \(arriveTime)")
+                    .font(.subheadline.monospacedDigit())
+                if !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(timeUntil)
+                    .font(.system(size: 12, weight: .semibold))
+                if !realtimeStatus.isEmpty {
+                    Text(realtimeStatus)
+                        .font(.system(size: 11))
+                        .foregroundStyle(realtimeStatus.contains("late") ? .red : .secondary)
+                }
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(Color.white.opacity(0.35), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func journeySubtitle(for journey: Journey, transportLeg: Leg?) -> String {
+        let duration = journeyDurationText(for: journey)
+        let rawPlatform = transportLeg?.origin.properties?.platformName
+            ?? transportLeg?.origin.properties?.platform
+        guard let rawPlatform, !rawPlatform.isEmpty else {
+            return duration
+        }
+
+        let platform = rawPlatform.lowercased().hasPrefix("platform") ? rawPlatform : "Platform \(rawPlatform)"
+        if duration.isEmpty { return platform }
+        return "\(duration) · \(platform)"
+    }
+
+    private func journeyDurationText(for journey: Journey) -> String {
+        guard let departDate = TimeFormatting.parseTime(journey.legs.first?.origin.departureTimePlanned),
+              let arriveDate = TimeFormatting.parseTime(journey.legs.last?.destination.arrivalTimePlanned) else {
+            return ""
+        }
+        let seconds = Int(arriveDate.timeIntervalSince(departDate))
+        guard seconds > 0 else { return "" }
+        return TimeFormatting.formatDuration(seconds)
+    }
+
+    private func realtimeStatus(for origin: LegLocation?) -> String {
+        guard let planned = TimeFormatting.parseTime(origin?.departureTimePlanned),
+              let estimated = TimeFormatting.parseTime(origin?.departureTimeEstimated) else {
+            return ""
+        }
+
+        let diffMins = Int(round(estimated.timeIntervalSince(planned) / 60))
+        if diffMins <= 0 { return "On time" }
+        return "\(diffMins) min\(diffMins == 1 ? "" : "s") late"
     }
 
     // MARK: - Helpers
@@ -339,8 +502,9 @@ struct TripCreationView: View {
                             }
                         }
                         .zIndex(isDragging ? 1 : 0)
-                        .highPriorityGesture(
-                            TapGesture().onEnded { handleCardTap(trip.id) }
+                        .gesture(
+                            TapGesture().onEnded { handleCardTap(trip.id) },
+                            including: .gesture
                         )
                         .gesture(
                             DragGesture(minimumDistance: 14)
@@ -423,6 +587,21 @@ struct TripCreationView: View {
         let isSelected = selection.contains(trip.id)
 
         return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Spacer()
+                Button {
+                    reverseTrip(trip.id)
+                } label: {
+                    Image(systemName: "arrow.left.arrow.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(6)
+                        .background(.background.opacity(0.7), in: RoundedRectangle(cornerRadius: 8))
+                }
+                .buttonStyle(.plain)
+                .help("Swap origin and destination")
+            }
+
             VStack(alignment: .leading, spacing: 2) {
                 Text("From")
                     .font(.system(size: 13))
@@ -482,6 +661,56 @@ struct TripCreationView: View {
         for id in ids { store.removeTrip(id: id) }
         selection.removeAll()
         onTripsChanged()
+    }
+
+    private func reverseTrip(_ id: String) {
+        store.reverseTrip(id: id)
+        onTripsChanged()
+    // MARK: - Release Channels / Feature Flags
+
+    private var releaseChannelSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Release Channel")
+                .font(.headline)
+
+            Picker("Channel", selection: $releaseChannel) {
+                Text("Stable").tag(ReleaseChannel.stable)
+                Text("Beta").tag(ReleaseChannel.beta)
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: releaseChannel) { _, newValue in
+                AppSettings.releaseChannel = newValue
+            }
+
+            Toggle("Enable beta feature toggles", isOn: $betaFeaturesEnabled)
+                .onChange(of: betaFeaturesEnabled) { _, newValue in
+                    AppSettings.enableBetaFeatures = newValue
+                }
+
+            Text("Restart the app after changing channel, then use “Check for Updates…” from the menu.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var betaFeaturesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Beta Tools")
+                .font(.headline)
+            Text("Use these while testing in-progress work.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Button("Refresh departures now") {
+                onTripsChanged()
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
     }
 }
 
