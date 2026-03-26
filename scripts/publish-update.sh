@@ -32,7 +32,7 @@ echo "==> Building DMG..."
 # Stable and beta use separate subdirs so generate_appcast never sees both
 # DMGs at once (it errors on duplicate bundle versions).
 if [ "${CHANNEL}" = "beta" ]; then
-    DMG_BASENAME="All Aboard Beta.dmg"
+    DMG_BASENAME="All.Aboard.Beta.dmg"
     APPCAST_FILE="appcast-beta.xml"
     DOWNLOAD_URL_PREFIX="https://github.com/patbarlow/all-aboard/releases/download/beta/"
 else
@@ -53,6 +53,25 @@ echo "==> Generating appcast..."
 
 # Copy appcast to repo root for GitHub hosting
 cp "${RELEASES_DIR}/appcast.xml" "$(pwd)/${APPCAST_FILE}"
+
+# Step 4: Ensure the enclosure has an EdDSA signature.
+# generate_appcast can skip signing when its Keychain lookup fails.
+# Fall back to sign_update directly if the signature is missing.
+DMG_FILE="${RELEASES_DIR}/${DMG_BASENAME}"
+if ! grep -q 'sparkle:edSignature' "$(pwd)/${APPCAST_FILE}"; then
+    echo "==> generate_appcast did not sign the enclosure — running sign_update directly..."
+    SIGNATURE=$("${SPARKLE_DIR}/sign_update" "${DMG_FILE}" 2>/dev/null | grep -o 'sparkle:edSignature="[^"]*"')
+    DMG_SIZE=$(stat -f "%z" "${DMG_FILE}")
+    if [ -n "${SIGNATURE}" ]; then
+        # Patch the length and inject the signature into the enclosure element
+        sed -i '' \
+            "s|<enclosure url=\"\([^\"]*\)\" length=\"[0-9]*\"|<enclosure url=\"\1\" ${SIGNATURE} length=\"${DMG_SIZE}\"|g" \
+            "$(pwd)/${APPCAST_FILE}"
+        echo "==> Signature injected successfully."
+    else
+        echo "Warning: sign_update also failed. Update will not be installable until signed."
+    fi
+fi
 
 echo "==> Done!"
 echo ""
