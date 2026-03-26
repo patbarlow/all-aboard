@@ -8,23 +8,7 @@
             <sparkle:version>3</sparkle:version>
             <sparkle:shortVersionString>1.2.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/patbarlow/all-aboard/releases/download/beta/All%20Aboard%20Beta.dmg" sparkle:edSignature="1GE2hJ+jaAR7wXg/zb/lPHqEmkF/zrBoBNYv7j1B5WNYFjwhvSO4EVmFIblGhguAl+VvHTSrikD4raL+r3q+AA==" length="2308223" type="application/octet-stream"/>
-        </item>
-        <item>
-            <title>1.1.0</title>
-            <pubDate>Thu, 26 Mar 2026 11:09:30 +1100</pubDate>
-            <sparkle:version>2</sparkle:version>
-            <sparkle:shortVersionString>1.1.0</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/patbarlow/all-aboard/releases/download/beta/All%20Aboard%20Beta.dmg" length="2308242" type="application/octet-stream"/>
-        </item>
-        <item>
-            <title>1.0.0</title>
-            <pubDate>Thu, 26 Mar 2026 11:09:30 +1100</pubDate>
-            <sparkle:version>1</sparkle:version>
-            <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/patbarlow/all-aboard/releases/download/beta/All%20Aboard%20Beta.dmg" length="2254220" type="application/octet-stream"/>
+            <enclosure url="https://github.com/patbarlow/all-aboard/releases/download/beta/All%20Aboard%20Beta.dmg" length="2308149" type="application/octet-stream" sparkle:edSignature="RQSKLJrEfqvP8sm1Qi+ZNkKdwaL2BidhRP3mQRsNF3eXDEEJaxHRhBuQzTPrY5kND3S+GiNVaKW5IdCPlE/FBA=="/>
         </item>
     </channel>
 </rss>
