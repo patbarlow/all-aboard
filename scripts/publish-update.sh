@@ -32,7 +32,7 @@ echo "==> Building DMG..."
 # Stable and beta use separate subdirs so generate_appcast never sees both
 # DMGs at once (it errors on duplicate bundle versions).
 if [ "${CHANNEL}" = "beta" ]; then
-    DMG_BASENAME="All Aboard Beta.dmg"
+    DMG_BASENAME="All.Aboard.Beta.dmg"
     APPCAST_FILE="appcast-beta.xml"
     DOWNLOAD_URL_PREFIX="https://github.com/patbarlow/all-aboard/releases/download/beta/"
 else
