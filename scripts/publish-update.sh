@@ -28,11 +28,9 @@ SPARKLE_DIR="$(dirname "${SPARKLE_BIN}")"
 echo "==> Building DMG..."
 ./scripts/build-dmg.sh
 
-# Step 2: Create releases directory for appcast
-RELEASES_DIR="$(pwd)/releases"
-mkdir -p "${RELEASES_DIR}"
-
-# Copy the DMG to releases
+# Step 2: Create channel-specific releases directory for appcast
+# Stable and beta use separate subdirs so generate_appcast never sees both
+# DMGs at once (it errors on duplicate bundle versions).
 if [ "${CHANNEL}" = "beta" ]; then
     DMG_BASENAME="All Aboard Beta.dmg"
     APPCAST_FILE="appcast-beta.xml"
@@ -42,6 +40,9 @@ else
     APPCAST_FILE="appcast.xml"
     DOWNLOAD_URL_PREFIX="https://github.com/patbarlow/all-aboard/releases/latest/download/"
 fi
+
+RELEASES_DIR="$(pwd)/releases/${CHANNEL}"
+mkdir -p "${RELEASES_DIR}"
 
 cp "${TMPDIR}allaboard-build/All Aboard.dmg" "${RELEASES_DIR}/${DMG_BASENAME}"
 
