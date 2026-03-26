@@ -4,11 +4,11 @@
         <title>All Aboard</title>
         <item>
             <title>1.0.0</title>
-            <pubDate>Mon, 23 Mar 2026 19:07:07 +1100</pubDate>
+            <pubDate>Thu, 26 Mar 2026 11:09:30 +1100</pubDate>
             <sparkle:version>1</sparkle:version>
-            <sparkle:shortVersionString>1.0.0-beta.1</sparkle:shortVersionString>
+            <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/patbarlow/all-aboard/releases/download/beta/All%20Aboard%20Beta.dmg" length="1639484" type="application/octet-stream" sparkle:edSignature="qEhe5A7/GaNStvx9LalkdnC2vkgQ2f0hz80WHPvmbZZGEjGjwu8WW49o7dGTjzp08QVnNiOzKwPpSRXWUpT/BQ=="/>
+            <enclosure url="https://github.com/patbarlow/all-aboard/releases/download/beta/All%20Aboard%20Beta.dmg" length="2254220" type="application/octet-stream"/>
         </item>
     </channel>
 </rss>
