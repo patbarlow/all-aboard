@@ -44,17 +44,18 @@ fi
 
 # Create DMG
 echo "==> Creating DMG..."
-TEMP_DMG="${BUILD_DIR}/temp.dmg"
-hdiutil create -size 50m -fs HFS+ -volname "${VOLUME_NAME}" "${TEMP_DMG}"
-MOUNT_DIR="/Volumes/${VOLUME_NAME}"
-hdiutil attach "${TEMP_DMG}" -mountpoint "${MOUNT_DIR}" -nobrowse
-cp -R "${APP_PATH}" "${MOUNT_DIR}/"
-ln -s /Applications "${MOUNT_DIR}/Applications"
-hdiutil detach "${MOUNT_DIR}" || hdiutil detach "${MOUNT_DIR}" -force
-sync
-sleep 2
-hdiutil convert "${TEMP_DMG}" -format UDZO -o "${DMG_PATH}"
-rm "${TEMP_DMG}"
+STAGING_DIR="${BUILD_DIR}/dmg-staging"
+rm -rf "${STAGING_DIR}"
+mkdir -p "${STAGING_DIR}"
+cp -R "${APP_PATH}" "${STAGING_DIR}/"
+ln -s /Applications "${STAGING_DIR}/Applications"
+hdiutil create \
+    -volname "${VOLUME_NAME}" \
+    -srcfolder "${STAGING_DIR}" \
+    -ov \
+    -format UDZO \
+    "${DMG_PATH}"
+rm -rf "${STAGING_DIR}"
 
 # Sign DMG
 if [ -n "${SIGN_IDENTITY}" ]; then
