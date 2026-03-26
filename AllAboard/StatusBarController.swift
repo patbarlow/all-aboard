@@ -2,6 +2,13 @@ import AppKit
 import SwiftUI
 import Sparkle
 
+// Simple closure-based action target for menu buttons
+private class MenuAction: NSObject {
+    let block: () -> Void
+    init(_ block: @escaping () -> Void) { self.block = block }
+    @objc func invoke() { block() }
+}
+
 class StatusBarController: NSObject, NSWindowDelegate {
     private struct PinnedRow: Equatable {
         let tripId: String
@@ -16,6 +23,8 @@ class StatusBarController: NSObject, NSWindowDelegate {
     private var pinnedRow: PinnedRow?
     private var pinCountdownTimer: Timer?
     private let liveTripCardController = LiveTripCardPanelController()
+    /// Strong references to action handlers used in the current menu
+    private var menuItemActions: [AnyObject] = []
 
     init(store: TripStore, viewModel: MenuBarViewModel, updaterController: SPUStandardUpdaterController) {
         self.store = store
@@ -26,7 +35,7 @@ class StatusBarController: NSObject, NSWindowDelegate {
 
         if let button = statusItem.button {
             button.image = NSImage(systemSymbolName: "tram.fill", accessibilityDescription: "All Aboard")
-            button.title = " All Aboard"
+            button.title = ""
             button.target = self
             button.action = #selector(handleClick(_:))
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -55,6 +64,7 @@ class StatusBarController: NSObject, NSWindowDelegate {
     private func showTripsMenu() {
         let menu = NSMenu()
         let trips = viewModel.tripsWithJourneys
+        menuItemActions = []
 
         syncPinnedRowWithLatestJourneys()
 
@@ -70,32 +80,10 @@ class StatusBarController: NSObject, NSWindowDelegate {
             for (index, trip) in trips.enumerated() {
                 if index > 0 { menu.addItem(.separator()) }
 
-                do {
-                    let headerItem = NSMenuItem()
-                    let headerView = NSView()
-                    headerView.translatesAutoresizingMaskIntoConstraints = false
-
-                    let hPad: CGFloat = 12
-                    let vPad: CGFloat = 6
-
-                    let titleField = NSTextField(labelWithString: trip.name)
-                    titleField.font = .systemFont(ofSize: 12, weight: .semibold)
-                    titleField.textColor = .secondaryLabelColor
-                    titleField.translatesAutoresizingMaskIntoConstraints = false
-
-                    headerView.addSubview(titleField)
-
-                    NSLayoutConstraint.activate([
-                        titleField.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: hPad),
-                        titleField.topAnchor.constraint(equalTo: headerView.topAnchor, constant: vPad),
-                        titleField.trailingAnchor.constraint(lessThanOrEqualTo: headerView.trailingAnchor, constant: -hPad),
-                        titleField.bottomAnchor.constraint(equalTo: headerView.bottomAnchor, constant: -vPad),
-                        headerView.widthAnchor.constraint(equalToConstant: 340)
-                    ])
-
-                    headerItem.view = headerView
-                    menu.addItem(headerItem)
-                }
+                // Header row with trip name + swap-direction button
+                let headerItem = NSMenuItem()
+                headerItem.view = makeHeaderRow(tripName: trip.name, tripId: trip.id)
+                menu.addItem(headerItem)
 
                 if let error = trip.error {
                     let item = NSMenuItem(title: "Error: \(error)", action: nil, keyEquivalent: "")
@@ -197,7 +185,7 @@ class StatusBarController: NSObject, NSWindowDelegate {
         let hostingView = NSHostingView(rootView: rootView)
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 420, height: 480),
+            contentRect: NSRect(x: 0, y: 0, width: 420, height: 520),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
@@ -234,13 +222,6 @@ class StatusBarController: NSObject, NSWindowDelegate {
         refreshItem.target = self
         menu.addItem(refreshItem)
 
-        // Floating live trip card exploration
-        let cardTitle = liveTripCardController.isVisible ? "Hide Live Trip Card" : "Show Live Trip Card"
-        let liveCardItem = NSMenuItem(title: cardTitle, action: #selector(toggleLiveTripCard), keyEquivalent: "l")
-        liveCardItem.keyEquivalentModifierMask = [.command]
-        liveCardItem.target = self
-        menu.addItem(liveCardItem)
-
         menu.addItem(.separator())
 
         // Quit
@@ -258,17 +239,6 @@ class StatusBarController: NSObject, NSWindowDelegate {
     @objc private func refreshNow() {
         Task { @MainActor in
             await viewModel.refresh()
-        }
-    }
-
-    @objc private func toggleLiveTripCard() {
-        if liveTripCardController.isVisible {
-            liveTripCardController.close()
-            return
-        }
-
-        if let snapshot = liveTripCardSnapshot() {
-            liveTripCardController.show(snapshot: snapshot)
         }
     }
 
@@ -298,19 +268,31 @@ class StatusBarController: NSObject, NSWindowDelegate {
     }
 
     private func togglePinnedRow(tripId: String, departureTimePlanned: String) {
-        let selectedRow = PinnedRow(
-            tripId: tripId,
-            departureTimePlanned: departureTimePlanned
-        )
+        let selectedRow = PinnedRow(tripId: tripId, departureTimePlanned: departureTimePlanned)
         if pinnedRow == selectedRow {
-            pinnedRow = nil
+            unpinAndCloseCard()
         } else {
             pinnedRow = selectedRow
+            updateStatusBarButtonTitle()
+            showLiveCard()
         }
-
-        updateStatusBarButtonTitle()
         statusItem.menu?.cancelTracking()
         statusItem.menu = nil
+    }
+
+    private func showLiveCard() {
+        guard let snapshot = liveTripCardSnapshot() else { return }
+        liveTripCardController.show(snapshot: snapshot) { [weak self] in
+            // User closed via X — unpin too
+            self?.pinnedRow = nil
+            self?.updateStatusBarButtonTitle()
+        }
+    }
+
+    private func unpinAndCloseCard() {
+        pinnedRow = nil
+        updateStatusBarButtonTitle()
+        liveTripCardController.close()
     }
 
     private func syncPinnedRowWithLatestJourneys() {
@@ -335,10 +317,8 @@ class StatusBarController: NSObject, NSWindowDelegate {
 
     private func updateStatusBarButtonTitle() {
         guard let button = statusItem.button else { return }
-
-        let baseTitle = " All Aboard"
         guard let pinnedRow else {
-            button.title = baseTitle
+            button.title = ""
             return
         }
 
@@ -348,41 +328,64 @@ class StatusBarController: NSObject, NSWindowDelegate {
             .first(where: { $0.legs.first?.origin.departureTimePlanned == pinnedRow.departureTimePlanned })
 
         let minutesUntil = TimeFormatting.formatTimeUntil(pinnedJourney?.legs.first?.origin.departureTimePlanned)
-        if minutesUntil.isEmpty {
-            button.title = baseTitle
-        } else {
-            button.title = "\(baseTitle)  \(minutesUntil)"
-        }
+        button.title = minutesUntil.isEmpty ? "" : " \(minutesUntil)"
     }
 
     private func startPinCountdownUpdates() {
         pinCountdownTimer?.invalidate()
         pinCountdownTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
-            self?.updateStatusBarButtonTitle()
+            self?.handlePinTimerTick()
+        }
+    }
+
+    private func handlePinTimerTick() {
+        updateStatusBarButtonTitle()
+
+        guard let pinnedRow else { return }
+
+        // Auto-close and unpin 60s after scheduled departure
+        if let departDate = TimeFormatting.parseTime(pinnedRow.departureTimePlanned),
+           Date().timeIntervalSince(departDate) > 60 {
+            unpinAndCloseCard()
+            return
+        }
+
+        // Keep the card snapshot fresh if it’s visible
+        if liveTripCardController.isVisible, let snapshot = liveTripCardSnapshot() {
+            liveTripCardController.update(snapshot: snapshot)
         }
     }
 
     private func liveTripCardSnapshot() -> LiveTripCardSnapshot? {
-        guard let trip = viewModel.tripsWithJourneys.first,
-              let journey = trip.journeys.first else {
+        guard let pinnedRow else { return nil }
+        guard let trip = viewModel.tripsWithJourneys.first(where: { $0.id == pinnedRow.tripId }),
+              let journey = trip.journeys.first(where: {
+                  $0.legs.first?.origin.departureTimePlanned == pinnedRow.departureTimePlanned
+              }) else {
             return nil
         }
 
         let firstLeg = journey.legs.first
-        let lastLeg = journey.legs.last
         let transportLeg = journey.legs.first { $0.transportation != nil }
-        let currentStop = transportLeg?.origin.name ?? firstLeg?.origin.name ?? trip.origin.name
 
-        let plannedISO = (transportLeg?.origin.departureTimePlanned ?? firstLeg?.origin.departureTimePlanned)
+        let plannedISO = transportLeg?.origin.departureTimePlanned ?? firstLeg?.origin.departureTimePlanned
         let departTime = TimeFormatting.formatTime(plannedISO)
-        let arriveTime = TimeFormatting.formatTime(lastLeg?.destination.arrivalTimePlanned)
+
+        // Clean stop name: strip ", Platform X, City" suffix and " Station" suffix
+        let rawStop = transportLeg?.origin.name ?? firstLeg?.origin.name ?? trip.origin.name
+        let currentStop = (rawStop.components(separatedBy: ",").first ?? rawStop)
+            .replacingOccurrences(of: " Station", with: "")
+            .trimmingCharacters(in: .whitespaces)
+
+        // Route: use trip name but clean up " Station"
+        let route = trip.name.replacingOccurrences(of: " Station", with: "")
 
         let platformRaw = transportLeg?.origin.properties?.platformName
-            ?? transportLeg?.origin.properties?.platform
-            ?? "TBD"
-        let platformText = platformRaw.lowercased().hasPrefix("platform") ? platformRaw : "Platform \(platformRaw)"
+            ?? transportLeg?.origin.properties?.platform ?? ""
+        let platformText = platformRaw.isEmpty ? "" :
+            (platformRaw.lowercased().hasPrefix("platform") ? platformRaw : "Platform \(platformRaw)")
 
-        var statusText = "Live"
+        var statusText = ""
         if let planned = TimeFormatting.parseTime(transportLeg?.origin.departureTimePlanned ?? firstLeg?.origin.departureTimePlanned),
            let estimated = TimeFormatting.parseTime(transportLeg?.origin.departureTimeEstimated ?? firstLeg?.origin.departureTimeEstimated) {
             let diffMins = Int(round(estimated.timeIntervalSince(planned) / 60))
@@ -390,15 +393,68 @@ class StatusBarController: NSObject, NSWindowDelegate {
         }
 
         return LiveTripCardSnapshot(
-            tripName: trip.name,
-            route: "\(trip.origin.name) → \(trip.destination.name)",
+            route: route,
             departureISOTime: plannedISO,
             departureDisplay: departTime,
-            arrivalDisplay: arriveTime,
             statusText: statusText,
             platformText: platformText,
-            currentStopText: "Current stop: \(currentStop)"
+            currentStop: currentStop
         )
+    }
+
+    // MARK: - Menu Header with Swap Button
+
+    private func makeHeaderRow(tripName: String, tripId: String) -> NSView {
+        let container = NSView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+
+        let hPad: CGFloat = 12
+
+        let titleField = NSTextField(labelWithString: tripName)
+        titleField.font = .systemFont(ofSize: 12, weight: .semibold)
+        titleField.textColor = .secondaryLabelColor
+        titleField.translatesAutoresizingMaskIntoConstraints = false
+        titleField.lineBreakMode = .byTruncatingMiddle
+
+        // Swap-direction button
+        let swapIcon = NSImage(systemSymbolName: "arrow.left.arrow.right",
+                               accessibilityDescription: "Swap direction")!
+        let swapBtn = NSButton(image: swapIcon, target: nil, action: nil)
+        swapBtn.bezelStyle = .regularSquare
+        swapBtn.isBordered = false
+        swapBtn.translatesAutoresizingMaskIntoConstraints = false
+        swapBtn.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 10, weight: .regular)
+        swapBtn.contentTintColor = .tertiaryLabelColor
+
+        let action = MenuAction { [weak self] in
+            guard let self else { return }
+            self.store.reverseTrip(id: tripId)
+            Task { @MainActor in await self.viewModel.refresh() }
+            self.statusItem.menu?.cancelTracking()
+            self.statusItem.menu = nil
+        }
+        menuItemActions.append(action)
+        swapBtn.target = action
+        swapBtn.action = #selector(MenuAction.invoke)
+
+        container.addSubview(titleField)
+        container.addSubview(swapBtn)
+
+        NSLayoutConstraint.activate([
+            titleField.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: hPad),
+            titleField.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            titleField.trailingAnchor.constraint(lessThanOrEqualTo: swapBtn.leadingAnchor, constant: -6),
+
+            swapBtn.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -hPad),
+            swapBtn.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            swapBtn.widthAnchor.constraint(equalToConstant: 20),
+            swapBtn.heightAnchor.constraint(equalToConstant: 20),
+
+            container.heightAnchor.constraint(equalToConstant: 28),
+            container.widthAnchor.constraint(equalToConstant: 340)
+        ])
+
+        return container
     }
 
     // MARK: - Menu Row View

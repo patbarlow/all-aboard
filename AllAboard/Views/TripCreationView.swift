@@ -14,11 +14,17 @@ struct TripCreationView: View {
     @State private var dragTranslation: CGFloat = 0
     @State private var releaseChannel = AppSettings.releaseChannel
     @State private var betaFeaturesEnabled = AppSettings.enableBetaFeatures
+    @State private var selectedTab: Tab = .trips
     @FocusState private var focusedField: DraftField?
 
     private enum DraftField: Hashable {
         case origin
         case destination
+    }
+
+    private enum Tab: Hashable {
+        case trips
+        case settings
     }
 
     private let cardHeight: CGFloat = 103 // card (~95) + spacing (8)
@@ -30,6 +36,20 @@ struct TripCreationView: View {
     }
 
     var body: some View {
+        TabView(selection: $selectedTab) {
+            tripsTab
+                .tabItem { Label("Trips", systemImage: "tram.fill") }
+                .tag(Tab.trips)
+            settingsTab
+                .tabItem { Label("Settings", systemImage: "gearshape") }
+                .tag(Tab.settings)
+        }
+        .frame(width: 420, height: 520)
+    }
+
+    // MARK: - Trips Tab
+
+    private var tripsTab: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
@@ -45,20 +65,12 @@ struct TripCreationView: View {
                     } else if !isDrafting {
                         emptyState
                     }
-
-                    releaseChannelSection
-
-                    if betaFeaturesEnabled {
-                        betaFeaturesSection
-                    }
                 }
                 .padding(20)
                 .frame(maxWidth: .infinity, alignment: .topLeading)
             }
             .contentShape(Rectangle())
-            .onTapGesture {
-                selection.removeAll()
-            }
+            .onTapGesture { selection.removeAll() }
             .animation(.spring(duration: 0.35), value: isDrafting)
             .animation(.spring(duration: 0.3), value: hasSearchContent)
             .navigationTitle("All Aboard")
@@ -69,7 +81,21 @@ struct TripCreationView: View {
                 }
             }
         }
-        .frame(width: 420, height: 480)
+    }
+
+    // MARK: - Settings Tab
+
+    private var settingsTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                releaseChannelSection
+                if betaFeaturesEnabled {
+                    betaFeaturesSection
+                }
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
     }
 
     @ViewBuilder
@@ -587,21 +613,6 @@ struct TripCreationView: View {
         let isSelected = selection.contains(trip.id)
 
         return VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Spacer()
-                Button {
-                    reverseTrip(trip.id)
-                } label: {
-                    Image(systemName: "arrow.left.arrow.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(6)
-                        .background(.background.opacity(0.7), in: RoundedRectangle(cornerRadius: 8))
-                }
-                .buttonStyle(.plain)
-                .help("Swap origin and destination")
-            }
-
             VStack(alignment: .leading, spacing: 2) {
                 Text("From")
                     .font(.system(size: 13))
