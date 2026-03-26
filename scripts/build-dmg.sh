@@ -50,7 +50,9 @@ MOUNT_DIR="/Volumes/${VOLUME_NAME}"
 hdiutil attach "${TEMP_DMG}" -mountpoint "${MOUNT_DIR}" -nobrowse
 cp -R "${APP_PATH}" "${MOUNT_DIR}/"
 ln -s /Applications "${MOUNT_DIR}/Applications"
-hdiutil detach "${MOUNT_DIR}" -force
+hdiutil detach "${MOUNT_DIR}" || hdiutil detach "${MOUNT_DIR}" -force
+sync
+sleep 2
 hdiutil convert "${TEMP_DMG}" -format UDZO -o "${DMG_PATH}"
 rm "${TEMP_DMG}"
 
