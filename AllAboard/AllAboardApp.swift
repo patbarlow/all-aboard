@@ -9,6 +9,7 @@ enum ReleaseChannel: String {
 enum AppSettings {
     static let releaseChannelKey = "release-channel"
     static let enableBetaFeaturesKey = "enable-beta-features"
+    static let enableLiveCardKey = "enable-live-card"
     static let stableFeedURL = "https://raw.githubusercontent.com/patbarlow/all-aboard/main/appcast.xml"
     static let betaFeedURL = "https://raw.githubusercontent.com/patbarlow/all-aboard/main/appcast-beta.xml"
 
@@ -28,6 +29,11 @@ enum AppSettings {
     static var enableBetaFeatures: Bool {
         get { UserDefaults.standard.bool(forKey: enableBetaFeaturesKey) }
         set { UserDefaults.standard.set(newValue, forKey: enableBetaFeaturesKey) }
+    }
+
+    static var enableLiveCard: Bool {
+        get { UserDefaults.standard.bool(forKey: enableLiveCardKey) }
+        set { UserDefaults.standard.set(newValue, forKey: enableLiveCardKey) }
     }
 }
 

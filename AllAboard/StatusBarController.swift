@@ -25,6 +25,8 @@ class StatusBarController: NSObject, NSWindowDelegate {
     private let liveTripCardController = LiveTripCardPanelController()
     /// Strong references to action handlers used in the current menu
     private var menuItemActions: [AnyObject] = []
+    /// The currently displayed trips menu, kept for in-place rebuilds
+    private var activeMenu: NSMenu?
 
     init(store: TripStore, viewModel: MenuBarViewModel, updaterController: SPUStandardUpdaterController) {
         self.store = store
@@ -63,47 +65,63 @@ class StatusBarController: NSObject, NSWindowDelegate {
 
     private func showTripsMenu() {
         let menu = NSMenu()
-        let trips = viewModel.tripsWithJourneys
-        menuItemActions = []
-
         syncPinnedRowWithLatestJourneys()
-
-        if trips.isEmpty && store.savedTrips.isEmpty {
-            let item = NSMenuItem(title: "Right-click to add a trip", action: nil, keyEquivalent: "")
-            item.isEnabled = false
-            menu.addItem(item)
-        } else if trips.isEmpty {
-            let item = NSMenuItem(title: "Loading…", action: nil, keyEquivalent: "")
-            item.isEnabled = false
-            menu.addItem(item)
-        } else {
-            for (index, trip) in trips.enumerated() {
-                if index > 0 { menu.addItem(.separator()) }
-
-                // Header row with trip name + swap-direction button
-                let headerItem = NSMenuItem()
-                headerItem.view = makeHeaderRow(tripName: trip.name, tripId: trip.id)
-                menu.addItem(headerItem)
-
-                if let error = trip.error {
-                    let item = NSMenuItem(title: "Error: \(error)", action: nil, keyEquivalent: "")
-                    item.isEnabled = false
-                    menu.addItem(item)
-                } else if trip.journeys.isEmpty {
-                    let item = NSMenuItem(title: "No upcoming trips", action: nil, keyEquivalent: "")
-                    item.isEnabled = false
-                    menu.addItem(item)
-                } else {
-                    for journey in trip.journeys {
-                        menu.addItem(menuItem(for: journey, tripId: trip.id))
-                    }
-                }
-            }
-        }
+        buildTripsMenuContent(into: menu)
+        activeMenu = menu
 
         statusItem.menu = menu
         statusItem.button?.performClick(nil)
         statusItem.menu = nil
+    }
+
+    private func buildTripsMenuContent(into menu: NSMenu) {
+        menu.removeAllItems()
+        menuItemActions = []
+
+        // Use store for trip names — reflects swaps immediately without waiting for a refresh
+        let savedTrips = Array(store.savedTrips.prefix(3))
+
+        if savedTrips.isEmpty {
+            let item = NSMenuItem(title: "Right-click to add a trip", action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            menu.addItem(item)
+            return
+        }
+
+        if viewModel.tripsWithJourneys.isEmpty {
+            let item = NSMenuItem(title: "Loading…", action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            menu.addItem(item)
+            return
+        }
+
+        for (index, savedTrip) in savedTrips.enumerated() {
+            if index > 0 { menu.addItem(.separator()) }
+
+            let headerItem = NSMenuItem()
+            headerItem.view = makeHeaderRow(tripName: savedTrip.name, tripId: savedTrip.id)
+            menu.addItem(headerItem)
+
+            if let tripData = viewModel.tripsWithJourneys.first(where: { $0.id == savedTrip.id }) {
+                if let error = tripData.error {
+                    let item = NSMenuItem(title: "Error: \(error)", action: nil, keyEquivalent: "")
+                    item.isEnabled = false
+                    menu.addItem(item)
+                } else if tripData.journeys.isEmpty {
+                    let item = NSMenuItem(title: "No upcoming trips", action: nil, keyEquivalent: "")
+                    item.isEnabled = false
+                    menu.addItem(item)
+                } else {
+                    for journey in tripData.journeys {
+                        menu.addItem(menuItem(for: journey, tripId: savedTrip.id))
+                    }
+                }
+            } else {
+                let item = NSMenuItem(title: "Loading…", action: nil, keyEquivalent: "")
+                item.isEnabled = false
+                menu.addItem(item)
+            }
+        }
     }
 
     private func menuItem(for journey: Journey, tripId: String) -> NSMenuItem {
@@ -281,6 +299,7 @@ class StatusBarController: NSObject, NSWindowDelegate {
     }
 
     private func showLiveCard() {
+        guard AppSettings.enableLiveCard else { return }
         guard let snapshot = liveTripCardSnapshot() else { return }
         liveTripCardController.show(snapshot: snapshot) { [weak self] in
             // User closed via X — unpin too
@@ -427,11 +446,16 @@ class StatusBarController: NSObject, NSWindowDelegate {
         swapBtn.contentTintColor = .tertiaryLabelColor
 
         let action = MenuAction { [weak self] in
-            guard let self else { return }
+            guard let self, let menu = self.activeMenu else { return }
             self.store.reverseTrip(id: tripId)
-            Task { @MainActor in await self.viewModel.refresh() }
-            self.statusItem.menu?.cancelTracking()
-            self.statusItem.menu = nil
+            // Rebuild in place immediately so the header name flips right away
+            self.buildTripsMenuContent(into: menu)
+            // Fetch fresh departures for the new direction, then rebuild again
+            Task { @MainActor in
+                await self.viewModel.refresh()
+                guard let menu = self.activeMenu else { return }
+                self.buildTripsMenuContent(into: menu)
+            }
         }
         menuItemActions.append(action)
         swapBtn.target = action
