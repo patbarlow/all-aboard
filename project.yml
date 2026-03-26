@@ -30,6 +30,6 @@ targets:
         CODE_SIGN_ENTITLEMENTS: AllAboard/AllAboard.entitlements
         PRODUCT_BUNDLE_IDENTIFIER: com.allaboard.app
         MARKETING_VERSION: "1.2.0"
-        CURRENT_PROJECT_VERSION: 3
+        CURRENT_PROJECT_VERSION: 4
         CODE_SIGN_STYLE: Automatic
         ENABLE_HARDENED_RUNTIME: true

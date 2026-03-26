@@ -5,10 +5,10 @@
         <item>
             <title>1.2.0</title>
             <pubDate>Thu, 26 Mar 2026 11:09:30 +1100</pubDate>
-            <sparkle:version>3</sparkle:version>
+            <sparkle:version>4</sparkle:version>
             <sparkle:shortVersionString>1.2.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/patbarlow/all-aboard/releases/download/beta/All%20Aboard%20Beta.dmg" length="2308149" type="application/octet-stream" sparkle:edSignature="RQSKLJrEfqvP8sm1Qi+ZNkKdwaL2BidhRP3mQRsNF3eXDEEJaxHRhBuQzTPrY5kND3S+GiNVaKW5IdCPlE/FBA=="/>
+            <enclosure url="https://github.com/patbarlow/all-aboard/releases/download/beta/All%20Aboard%20Beta.dmg" length="2308262" type="application/octet-stream" sparkle:edSignature="cMuXK8O70HtnWKZhrE/dEZVaabZy9Nv21vahz1IsD1deWE84IIag/gN0U3rV9NlZB1rZTx9HRg61YlcMNiqgAg=="/>
         </item>
     </channel>
 </rss>
