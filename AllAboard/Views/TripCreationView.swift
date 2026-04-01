@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct TripCreationView: View {
     var store: TripStore
@@ -12,9 +13,6 @@ struct TripCreationView: View {
     @State private var draggingTripId: String?
     @State private var dragOriginIndex: Int = 0
     @State private var dragTranslation: CGFloat = 0
-    @State private var releaseChannel = AppSettings.releaseChannel
-    @State private var enableLiveCard = AppSettings.enableLiveCard
-    @State private var selectedTab: Tab = .trips
     @FocusState private var focusedField: DraftField?
 
     private enum DraftField: Hashable {
@@ -22,12 +20,8 @@ struct TripCreationView: View {
         case destination
     }
 
-    private enum Tab: Hashable {
-        case trips
-        case settings
-    }
-
     private let cardHeight: CGFloat = 103 // card (~95) + spacing (8)
+    private let sidebarWidth: CGFloat = 220
 
     init(store: TripStore, onTripsChanged: @escaping () -> Void) {
         self.store = store
@@ -36,15 +30,16 @@ struct TripCreationView: View {
     }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
+        VStack(spacing: 0) {
             tripsTab
-                .tabItem { Label("Trips", systemImage: "tram.fill") }
-                .tag(Tab.trips)
-            settingsTab
-                .tabItem { Label("Settings", systemImage: "gearshape") }
-                .tag(Tab.settings)
+                .frame(width: 420, height: 520)
+                .overlay(alignment: .topLeading) {
+                    DraggableTitlebarStrip()
+                        .frame(width: sidebarWidth, height: 32)
+                        .allowsHitTesting(true)
+                }
         }
-        .frame(width: 420, height: 520)
+        .ignoresSafeArea(edges: .top)
     }
 
     // MARK: - Trips Tab
@@ -80,52 +75,6 @@ struct TripCreationView: View {
                     toolbarContent
                 }
             }
-        }
-    }
-
-    // MARK: - Settings Tab
-
-    private var settingsTab: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                // Release Channel
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Release Channel")
-                        .font(.headline)
-                    Picker("Channel", selection: $releaseChannel) {
-                        Text("Stable").tag(ReleaseChannel.stable)
-                        Text("Beta").tag(ReleaseChannel.beta)
-                    }
-                    .pickerStyle(.segmented)
-                    .onChange(of: releaseChannel) { _, newValue in
-                        AppSettings.releaseChannel = newValue
-                    }
-                    Text("Switches which update feed Sparkle uses for 'Check for Updates…'. Restart the app after changing.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(14)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
-
-                // Beta Features
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Beta Features")
-                        .font(.headline)
-                    Toggle("Floating live card", isOn: $enableLiveCard)
-                        .onChange(of: enableLiveCard) { _, newValue in
-                            AppSettings.enableLiveCard = newValue
-                        }
-                    Text("Pin a departure in the menu bar to show a floating countdown card on your desktop.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(14)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
-            }
-            .padding(20)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
     }
 
@@ -203,7 +152,7 @@ struct TripCreationView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+        .background(AppColors.cardBackground, in: RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(Color.accentColor.opacity(0.3), lineWidth: 1.5)
@@ -346,7 +295,7 @@ struct TripCreationView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+        .background(AppColors.cardBackground, in: RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(Color.accentColor.opacity(0.3), lineWidth: 1.5)
@@ -417,7 +366,7 @@ struct TripCreationView: View {
             if viewModel.selectedOrigin == nil {
                 Text("Search station")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.quaternary)
+                    .foregroundStyle(AppColors.tertiaryText)
             } else {
                 TextField("Search station", text: $destinationInput)
                     .font(.system(size: 16, weight: .semibold))
@@ -536,7 +485,7 @@ struct TripCreationView: View {
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(.quaternary, in: Capsule())
+                    .background(AppColors.cardBackground, in: Capsule())
             }
 
             VStack(spacing: 8) {
@@ -662,7 +611,7 @@ struct TripCreationView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+        .background(AppColors.cardBackground, in: RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 2)
@@ -710,6 +659,36 @@ struct TripCreationView: View {
         onTripsChanged()
     }
 
+}
+
+/// A reliable draggable strip that only occupies its own bounds.
+private struct DraggableTitlebarStrip: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        return DraggableStripView()
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
+
+    private final class DraggableStripView: NSView {
+        override init(frame frameRect: NSRect) {
+            super.init(frame: frameRect)
+            wantsLayer = true
+            layer?.backgroundColor = NSColor.clear.cgColor
+        }
+
+        required init?(coder: NSCoder) { super.init(coder: coder) }
+
+        override func hitTest(_ point: NSPoint) -> NSView? {
+            // Ensure this view is hit-testable even when visually clear
+            return self
+        }
+
+        override func mouseDown(with event: NSEvent) {
+            guard let window = self.window else { return }
+            // Begin a standard window drag from this region
+            window.performDrag(with: event)
+        }
+    }
 }
 
 #Preview {

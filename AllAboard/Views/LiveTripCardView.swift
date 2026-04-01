@@ -84,11 +84,11 @@ struct LiveTripCardView: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 13, style: .continuous)
-                .fill(.regularMaterial)
+                .fill(AppColors.contentBackground)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 13, style: .continuous)
-                .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                .stroke(AppColors.contentBorder, lineWidth: 1)
         )
         .shadow(color: .black.opacity(0.14), radius: 8, x: 0, y: 4)
         .onHover { isHovered = $0 }

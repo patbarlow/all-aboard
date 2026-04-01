@@ -48,12 +48,13 @@ actor APIClient {
 
     // MARK: - Trip Planning
 
-    func planTrip(originId: String, destinationId: String) async throws -> [Journey] {
+    func planTrip(originId: String, destinationId: String, maxJourneys: Int = 6) async throws -> [Journey] {
         try await planTrip(
             originId: originId,
             destinationId: destinationId,
             date: Date(),
-            isDepartureTime: true
+            isDepartureTime: true,
+            maxJourneys: maxJourneys
         )
     }
 
@@ -61,7 +62,8 @@ actor APIClient {
         originId: String,
         destinationId: String,
         date: Date,
-        isDepartureTime: Bool
+        isDepartureTime: Bool,
+        maxJourneys: Int = 6
     ) async throws -> [Journey] {
         let calendar = Calendar.current
         let dateStr = String(
@@ -92,7 +94,7 @@ actor APIClient {
             URLQueryItem(name: "exclMOT_7", value: "1"),
             URLQueryItem(name: "exclMOT_9", value: "1"),
             URLQueryItem(name: "exclMOT_11", value: "1"),
-            URLQueryItem(name: "calcNumberOfTrips", value: "6"),
+            URLQueryItem(name: "calcNumberOfTrips", value: "\(maxJourneys)"),
         ]
 
         let response: TripResponse = try await fetch(url: components.url!)
