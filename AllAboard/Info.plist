@@ -16,5 +16,7 @@
     <string>https://raw.githubusercontent.com/patbarlow/all-aboard/main/appcast.xml</string>
     <key>SUPublicEDKey</key>
     <string>DXaM+fPfK1BV4Q2ZFL72kY2QAEkgduZvo+77jYb5Dnk=</string>
+    <key>SUEnableInstallerLauncherService</key>
+    <true/>
 </dict>
 </plist>
