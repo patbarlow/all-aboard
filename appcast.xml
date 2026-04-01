@@ -8,7 +8,7 @@
             <sparkle:version>5</sparkle:version>
             <sparkle:shortVersionString>1.3.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/patbarlow/all-aboard/releases/download/v1.3.0/All.Aboard.dmg" length="3674589" type="application/octet-stream" sparkle:edSignature="Qbwl/DG6bOxrf88qvezsx/tpDu0IOovg8gJJcKpRU6ynqtFE84lV8LWyDWVFGEfdDy6Fw0DsMoaU2ROajPc/BQ=="/>
+            <enclosure url="https://github.com/patbarlow/all-aboard/releases/download/v1.3.0/AllAboard.dmg" length="3674589" type="application/octet-stream" sparkle:edSignature="Qbwl/DG6bOxrf88qvezsx/tpDu0IOovg8gJJcKpRU6ynqtFE84lV8LWyDWVFGEfdDy6Fw0DsMoaU2ROajPc/BQ=="/>
         </item>
         <item>
             <title>1.0.0</title>
