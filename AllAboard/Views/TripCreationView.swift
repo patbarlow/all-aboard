@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct TripCreationView: View {
     var store: TripStore
@@ -12,8 +13,6 @@ struct TripCreationView: View {
     @State private var draggingTripId: String?
     @State private var dragOriginIndex: Int = 0
     @State private var dragTranslation: CGFloat = 0
-    @State private var releaseChannel = AppSettings.releaseChannel
-    @State private var betaFeaturesEnabled = AppSettings.enableBetaFeatures
     @FocusState private var focusedField: DraftField?
 
     private enum DraftField: Hashable {
@@ -22,6 +21,7 @@ struct TripCreationView: View {
     }
 
     private let cardHeight: CGFloat = 103 // card (~95) + spacing (8)
+    private let sidebarWidth: CGFloat = 220
 
     init(store: TripStore, onTripsChanged: @escaping () -> Void) {
         self.store = store
@@ -30,6 +30,21 @@ struct TripCreationView: View {
     }
 
     var body: some View {
+        VStack(spacing: 0) {
+            tripsTab
+                .frame(width: 420, height: 520)
+                .overlay(alignment: .topLeading) {
+                    DraggableTitlebarStrip()
+                        .frame(width: sidebarWidth, height: 32)
+                        .allowsHitTesting(true)
+                }
+        }
+        .ignoresSafeArea(edges: .top)
+    }
+
+    // MARK: - Trips Tab
+
+    private var tripsTab: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
@@ -45,20 +60,12 @@ struct TripCreationView: View {
                     } else if !isDrafting {
                         emptyState
                     }
-
-                    releaseChannelSection
-
-                    if betaFeaturesEnabled {
-                        betaFeaturesSection
-                    }
                 }
                 .padding(20)
                 .frame(maxWidth: .infinity, alignment: .topLeading)
             }
             .contentShape(Rectangle())
-            .onTapGesture {
-                selection.removeAll()
-            }
+            .onTapGesture { selection.removeAll() }
             .animation(.spring(duration: 0.35), value: isDrafting)
             .animation(.spring(duration: 0.3), value: hasSearchContent)
             .navigationTitle("All Aboard")
@@ -69,7 +76,6 @@ struct TripCreationView: View {
                 }
             }
         }
-        .frame(width: 420, height: 480)
     }
 
     @ViewBuilder
@@ -146,7 +152,7 @@ struct TripCreationView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+        .background(AppColors.cardBackground, in: RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(Color.accentColor.opacity(0.3), lineWidth: 1.5)
@@ -289,7 +295,7 @@ struct TripCreationView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+        .background(AppColors.cardBackground, in: RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(Color.accentColor.opacity(0.3), lineWidth: 1.5)
@@ -360,7 +366,7 @@ struct TripCreationView: View {
             if viewModel.selectedOrigin == nil {
                 Text("Search station")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.quaternary)
+                    .foregroundStyle(AppColors.tertiaryText)
             } else {
                 TextField("Search station", text: $destinationInput)
                     .font(.system(size: 16, weight: .semibold))
@@ -479,7 +485,7 @@ struct TripCreationView: View {
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(.quaternary, in: Capsule())
+                    .background(AppColors.cardBackground, in: Capsule())
             }
 
             VStack(spacing: 8) {
@@ -587,21 +593,6 @@ struct TripCreationView: View {
         let isSelected = selection.contains(trip.id)
 
         return VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Spacer()
-                Button {
-                    reverseTrip(trip.id)
-                } label: {
-                    Image(systemName: "arrow.left.arrow.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(6)
-                        .background(.background.opacity(0.7), in: RoundedRectangle(cornerRadius: 8))
-                }
-                .buttonStyle(.plain)
-                .help("Swap origin and destination")
-            }
-
             VStack(alignment: .leading, spacing: 2) {
                 Text("From")
                     .font(.system(size: 13))
@@ -620,7 +611,7 @@ struct TripCreationView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+        .background(AppColors.cardBackground, in: RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 2)
@@ -668,51 +659,35 @@ struct TripCreationView: View {
         onTripsChanged()
     }
 
-    // MARK: - Release Channels / Feature Flags
+}
 
-    private var releaseChannelSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Release Channel")
-                .font(.headline)
-
-            Picker("Channel", selection: $releaseChannel) {
-                Text("Stable").tag(ReleaseChannel.stable)
-                Text("Beta").tag(ReleaseChannel.beta)
-            }
-            .pickerStyle(.segmented)
-            .onChange(of: releaseChannel) { _, newValue in
-                AppSettings.releaseChannel = newValue
-            }
-
-            Toggle("Enable beta feature toggles", isOn: $betaFeaturesEnabled)
-                .onChange(of: betaFeaturesEnabled) { _, newValue in
-                    AppSettings.enableBetaFeatures = newValue
-                }
-
-            Text("Restart the app after changing channel, then use “Check for Updates…” from the menu.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+/// A reliable draggable strip that only occupies its own bounds.
+private struct DraggableTitlebarStrip: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        return DraggableStripView()
     }
 
-    private var betaFeaturesSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Beta Tools")
-                .font(.headline)
-            Text("Use these while testing in-progress work.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+    func updateNSView(_ nsView: NSView, context: Context) {}
 
-            Button("Refresh departures now") {
-                onTripsChanged()
-            }
+    private final class DraggableStripView: NSView {
+        override init(frame frameRect: NSRect) {
+            super.init(frame: frameRect)
+            wantsLayer = true
+            layer?.backgroundColor = NSColor.clear.cgColor
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+
+        required init?(coder: NSCoder) { super.init(coder: coder) }
+
+        override func hitTest(_ point: NSPoint) -> NSView? {
+            // Ensure this view is hit-testable even when visually clear
+            return self
+        }
+
+        override func mouseDown(with event: NSEvent) {
+            guard let window = self.window else { return }
+            // Begin a standard window drag from this region
+            window.performDrag(with: event)
+        }
     }
 }
 

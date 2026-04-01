@@ -2,6 +2,13 @@ import AppKit
 import SwiftUI
 import Sparkle
 
+// Simple closure-based action target for menu buttons
+private class MenuAction: NSObject {
+    let block: () -> Void
+    init(_ block: @escaping () -> Void) { self.block = block }
+    @objc func invoke() { block() }
+}
+
 class StatusBarController: NSObject, NSWindowDelegate {
     private struct PinnedRow: Equatable {
         let tripId: String
@@ -9,13 +16,18 @@ class StatusBarController: NSObject, NSWindowDelegate {
     }
 
     private var statusItem: NSStatusItem
-    private var settingsWindow: NSWindow?
+    private var mainWindow: NSWindow?
     private let store: TripStore
     private let viewModel: MenuBarViewModel
     private let updaterController: SPUStandardUpdaterController
     private var pinnedRow: PinnedRow?
     private var pinCountdownTimer: Timer?
     private let liveTripCardController = LiveTripCardPanelController()
+    private let selectionController = WindowSelectionController()
+    /// Strong references to action handlers used in the current menu
+    private var menuItemActions: [AnyObject] = []
+    /// The currently displayed trips menu, kept for in-place rebuilds
+    private var activeMenu: NSMenu?
 
     init(store: TripStore, viewModel: MenuBarViewModel, updaterController: SPUStandardUpdaterController) {
         self.store = store
@@ -26,14 +38,18 @@ class StatusBarController: NSObject, NSWindowDelegate {
 
         if let button = statusItem.button {
             button.image = NSImage(systemSymbolName: "tram.fill", accessibilityDescription: "All Aboard")
-            button.title = " All Aboard"
+            button.title = ""
             button.target = self
             button.action = #selector(handleClick(_:))
-            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+            button.sendAction(on: [.leftMouseUp])
         }
 
         updateStatusBarButtonTitle()
         startPinCountdownUpdates()
+
+        NotificationCenter.default.addObserver(forName: .menuBarSettingsChanged, object: nil, queue: .main) { [weak self] _ in
+            self?.updateStatusBarButtonTitle()
+        }
     }
 
     deinit {
@@ -41,81 +57,97 @@ class StatusBarController: NSObject, NSWindowDelegate {
     }
 
     @objc private func handleClick(_ sender: NSStatusBarButton) {
-        guard let event = NSApp.currentEvent else { return }
-        if event.type == .rightMouseUp {
-            showContextMenu()
-        } else {
-            Task { @MainActor in await viewModel.refresh() }
-            showTripsMenu()
-        }
+        Task { @MainActor in await viewModel.refresh() }
+        showTripsMenu()
     }
 
     // MARK: - Left Click: Trip Departures
 
     private func showTripsMenu() {
         let menu = NSMenu()
-        let trips = viewModel.tripsWithJourneys
-
         syncPinnedRowWithLatestJourneys()
-
-        if trips.isEmpty && store.savedTrips.isEmpty {
-            let item = NSMenuItem(title: "Right-click to add a trip", action: nil, keyEquivalent: "")
-            item.isEnabled = false
-            menu.addItem(item)
-        } else if trips.isEmpty {
-            let item = NSMenuItem(title: "Loading…", action: nil, keyEquivalent: "")
-            item.isEnabled = false
-            menu.addItem(item)
-        } else {
-            for (index, trip) in trips.enumerated() {
-                if index > 0 { menu.addItem(.separator()) }
-
-                do {
-                    let headerItem = NSMenuItem()
-                    let headerView = NSView()
-                    headerView.translatesAutoresizingMaskIntoConstraints = false
-
-                    let hPad: CGFloat = 12
-                    let vPad: CGFloat = 6
-
-                    let titleField = NSTextField(labelWithString: trip.name)
-                    titleField.font = .systemFont(ofSize: 12, weight: .semibold)
-                    titleField.textColor = .secondaryLabelColor
-                    titleField.translatesAutoresizingMaskIntoConstraints = false
-
-                    headerView.addSubview(titleField)
-
-                    NSLayoutConstraint.activate([
-                        titleField.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: hPad),
-                        titleField.topAnchor.constraint(equalTo: headerView.topAnchor, constant: vPad),
-                        titleField.trailingAnchor.constraint(lessThanOrEqualTo: headerView.trailingAnchor, constant: -hPad),
-                        titleField.bottomAnchor.constraint(equalTo: headerView.bottomAnchor, constant: -vPad),
-                        headerView.widthAnchor.constraint(equalToConstant: 340)
-                    ])
-
-                    headerItem.view = headerView
-                    menu.addItem(headerItem)
-                }
-
-                if let error = trip.error {
-                    let item = NSMenuItem(title: "Error: \(error)", action: nil, keyEquivalent: "")
-                    item.isEnabled = false
-                    menu.addItem(item)
-                } else if trip.journeys.isEmpty {
-                    let item = NSMenuItem(title: "No upcoming trips", action: nil, keyEquivalent: "")
-                    item.isEnabled = false
-                    menu.addItem(item)
-                } else {
-                    for journey in trip.journeys {
-                        menu.addItem(menuItem(for: journey, tripId: trip.id))
-                    }
-                }
-            }
-        }
+        buildTripsMenuContent(into: menu)
+        activeMenu = menu
 
         statusItem.menu = menu
         statusItem.button?.performClick(nil)
         statusItem.menu = nil
+    }
+
+    private func buildTripsMenuContent(into menu: NSMenu) {
+        menu.removeAllItems()
+        menuItemActions = []
+
+        // Use store for trip names — reflects swaps immediately without waiting for a refresh
+        let savedTrips = Array(store.savedTrips.prefix(3))
+
+        if savedTrips.isEmpty {
+            let item = NSMenuItem(title: "No saved trips", action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            menu.addItem(item)
+        } else if viewModel.tripsWithJourneys.isEmpty {
+            let item = NSMenuItem(title: "Loading…", action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            menu.addItem(item)
+        } else {
+            for (index, savedTrip) in savedTrips.enumerated() {
+                if index > 0 { menu.addItem(.separator()) }
+
+                let headerItem = NSMenuItem()
+                let cleanName = savedTrip.name.replacingOccurrences(of: " Station", with: "")
+                headerItem.view = makeHeaderRow(tripName: cleanName, tripId: savedTrip.id)
+                menu.addItem(headerItem)
+
+                if let tripData = viewModel.tripsWithJourneys.first(where: { $0.id == savedTrip.id }) {
+                    if let error = tripData.error {
+                        let item = NSMenuItem(title: "Error: \(error)", action: nil, keyEquivalent: "")
+                        item.isEnabled = false
+                        menu.addItem(item)
+                    } else if tripData.journeys.isEmpty {
+                        let item = NSMenuItem(title: "No upcoming trips", action: nil, keyEquivalent: "")
+                        item.isEnabled = false
+                        menu.addItem(item)
+                    } else {
+                        for journey in tripData.journeys {
+                            menu.addItem(menuItem(for: journey, tripId: savedTrip.id))
+                        }
+                    }
+                } else {
+                    let item = NSMenuItem(title: "Loading…", action: nil, keyEquivalent: "")
+                    item.isEnabled = false
+                    menu.addItem(item)
+                }
+            }
+        }
+
+        // Footer
+        menu.addItem(.separator())
+
+        let openAction = MenuAction { [weak self] in
+            self?.statusItem.menu?.cancelTracking()
+            self?.statusItem.menu = nil
+            self?.openApp()
+        }
+        menuItemActions.append(openAction)
+        let openItem = NSMenuItem()
+        openItem.view = makeTextMenuRow(title: "All Aboard", action: openAction)
+        menu.addItem(openItem)
+
+        let settingsAction = MenuAction { [weak self] in
+            self?.openSettingsFromMenu()
+        }
+        menuItemActions.append(settingsAction)
+        let settingsItem = NSMenuItem()
+        settingsItem.view = makeTextMenuRow(title: "Settings", action: settingsAction)
+        menu.addItem(settingsItem)
+
+        let quitAction = MenuAction {
+            NSApp.terminate(nil)
+        }
+        menuItemActions.append(quitAction)
+        let quitItem = NSMenuItem()
+        quitItem.view = makeTextMenuRow(title: "Quit All Aboard Completely", action: quitAction)
+        menu.addItem(quitItem)
     }
 
     private func menuItem(for journey: Journey, tripId: String) -> NSMenuItem {
@@ -180,117 +212,73 @@ class StatusBarController: NSObject, NSWindowDelegate {
         return item
     }
 
-    private func presentSettingsWindow() {
-        if let window = settingsWindow {
+    private func presentMainWindow() {
+        if let window = mainWindow {
             window.makeKeyAndOrderFront(nil)
+            NSApp.setActivationPolicy(.regular)
+            NSApp.activate(ignoringOtherApps: true)
             return
         }
 
-        // Host the TripCreationView so users can add/remove saved trips
-        let rootView = TripCreationView(store: store) { [weak self] in
+        let rootView = MainWindowView(store: store, selectionController: selectionController) { [weak self] in
             guard let self else { return }
-            // Refresh the menubar trips after changes
             Task { @MainActor in
                 await self.viewModel.refresh()
+                self.updateStatusBarButtonTitle()
             }
         }
         let hostingView = NSHostingView(rootView: rootView)
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 420, height: 480),
+            contentRect: NSRect(x: 0, y: 0, width: 760, height: 520),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
         )
-        window.title = "All Aboard"
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.backgroundColor = AppColors.sidebarBackgroundNS
         window.isReleasedWhenClosed = false
         window.contentView = hostingView
         window.center()
         window.delegate = self
+        window.setContentSize(NSSize(width: 760, height: 520))
 
-        settingsWindow = window
+        mainWindow = window
+
+        NSApp.setActivationPolicy(.regular)
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    // MARK: - Right Click: Settings Menu
-
-    private func showContextMenu() {
-        let menu = NSMenu()
-
-        // Settings
-        let settingsItem = NSMenuItem(title: "Manage Trips…", action: #selector(showSettings), keyEquivalent: "")
-        settingsItem.target = self
-        menu.addItem(settingsItem)
-
-        // Check for Updates
-        let updateItem = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
-        updateItem.target = self
-        menu.addItem(updateItem)
-
-        // Refresh Now
-        let refreshItem = NSMenuItem(title: "Refresh Now", action: #selector(refreshNow), keyEquivalent: "r")
-        refreshItem.keyEquivalentModifierMask = [.command]
-        refreshItem.target = self
-        menu.addItem(refreshItem)
-
-        // Floating live trip card exploration
-        let cardTitle = liveTripCardController.isVisible ? "Hide Live Trip Card" : "Show Live Trip Card"
-        let liveCardItem = NSMenuItem(title: cardTitle, action: #selector(toggleLiveTripCard), keyEquivalent: "l")
-        liveCardItem.keyEquivalentModifierMask = [.command]
-        liveCardItem.target = self
-        menu.addItem(liveCardItem)
-
-        menu.addItem(.separator())
-
-        // Quit
-        let quitItem = NSMenuItem(title: "Quit All Aboard", action: #selector(quitApp), keyEquivalent: "q")
-        quitItem.keyEquivalentModifierMask = [.command]
-        quitItem.target = self
-        menu.addItem(quitItem)
-
-        // Present the menu from the status item
-        statusItem.menu = menu
-        statusItem.button?.performClick(nil)
-        statusItem.menu = nil
-    }
-
-    @objc private func refreshNow() {
-        Task { @MainActor in
-            await viewModel.refresh()
-        }
-    }
-
-    @objc private func toggleLiveTripCard() {
-        if liveTripCardController.isVisible {
-            liveTripCardController.close()
-            return
-        }
-
-        if let snapshot = liveTripCardSnapshot() {
-            liveTripCardController.show(snapshot: snapshot)
-        }
-    }
-
-    @objc private func showSettings() {
-        // Activate app and close the status menu so the window can appear
+    @objc private func openApp() {
         NSApp.activate(ignoringOtherApps: true)
         self.statusItem.menu = nil
-
-        // Present our lightweight SwiftUI settings window
         DispatchQueue.main.async { [weak self] in
-            self?.presentSettingsWindow()
+            self?.presentMainWindow()
+        }
+    }
+
+    private func openSettingsFromMenu() {
+        statusItem.menu?.cancelTracking()
+        statusItem.menu = nil
+        openSettings()
+    }
+
+    @objc private func openSettings() {
+        NSApp.activate(ignoringOtherApps: true)
+        self.statusItem.menu = nil
+        DispatchQueue.main.async { [weak self] in
+            self?.presentMainWindow()
+            self?.selectionController.showSettings = true
         }
     }
 
     func windowWillClose(_ notification: Notification) {
-        if let window = notification.object as? NSWindow, window == settingsWindow {
-            settingsWindow = nil
+        if let window = notification.object as? NSWindow, window == mainWindow {
+            mainWindow = nil
+            NSApp.setActivationPolicy(.accessory)
         }
-    }
-
-    @objc private func checkForUpdates() {
-        updaterController.checkForUpdates(nil)
     }
 
     @objc private func quitApp() {
@@ -298,19 +286,31 @@ class StatusBarController: NSObject, NSWindowDelegate {
     }
 
     private func togglePinnedRow(tripId: String, departureTimePlanned: String) {
-        let selectedRow = PinnedRow(
-            tripId: tripId,
-            departureTimePlanned: departureTimePlanned
-        )
+        let selectedRow = PinnedRow(tripId: tripId, departureTimePlanned: departureTimePlanned)
         if pinnedRow == selectedRow {
-            pinnedRow = nil
+            unpinAndCloseCard()
         } else {
             pinnedRow = selectedRow
+            updateStatusBarButtonTitle()
+            showLiveCard()
         }
-
-        updateStatusBarButtonTitle()
         statusItem.menu?.cancelTracking()
         statusItem.menu = nil
+    }
+
+    private func showLiveCard() {
+        guard let snapshot = liveTripCardSnapshot() else { return }
+        liveTripCardController.show(snapshot: snapshot) { [weak self] in
+            // User closed via X — unpin too
+            self?.pinnedRow = nil
+            self?.updateStatusBarButtonTitle()
+        }
+    }
+
+    private func unpinAndCloseCard() {
+        pinnedRow = nil
+        updateStatusBarButtonTitle()
+        liveTripCardController.close()
     }
 
     private func syncPinnedRowWithLatestJourneys() {
@@ -336,53 +336,104 @@ class StatusBarController: NSObject, NSWindowDelegate {
     private func updateStatusBarButtonTitle() {
         guard let button = statusItem.button else { return }
 
-        let baseTitle = " All Aboard"
-        guard let pinnedRow else {
-            button.title = baseTitle
+        // Find the first FUTURE departure from the first saved trip
+        guard let firstTrip = viewModel.tripsWithJourneys.first else {
+            button.title = ""
             return
         }
 
-        let pinnedJourney = viewModel.tripsWithJourneys
-            .first(where: { $0.id == pinnedRow.tripId })?
-            .journeys
-            .first(where: { $0.legs.first?.origin.departureTimePlanned == pinnedRow.departureTimePlanned })
+        // Skip past departures — find the next one that hasn't left yet
+        let now = Date()
+        let nextJourney = firstTrip.journeys.first { journey in
+            guard let leg = journey.legs.first else { return false }
+            let timeStr = leg.origin.departureTimeEstimated ?? leg.origin.departureTimePlanned
+            guard let departDate = TimeFormatting.parseTime(timeStr) else { return false }
+            // Keep if departure is in the future or within 60s past (still "Due")
+            return departDate.timeIntervalSince(now) > -60
+        }
 
-        let minutesUntil = TimeFormatting.formatTimeUntil(pinnedJourney?.legs.first?.origin.departureTimePlanned)
-        if minutesUntil.isEmpty {
-            button.title = baseTitle
+        guard let journey = nextJourney, let firstLeg = journey.legs.first else {
+            button.title = ""
+            return
+        }
+
+        // Use estimated time if available, fall back to planned
+        let departureTime = firstLeg.origin.departureTimeEstimated ?? firstLeg.origin.departureTimePlanned
+
+        var parts: [String] = []
+
+        if AppSettings.showDepartureTimeInMenuBar {
+            let timeStr = TimeFormatting.formatTime(departureTime)
+            if !timeStr.isEmpty { parts.append(timeStr) }
+        }
+
+        if AppSettings.showCountdownInMenuBar {
+            let countdown = TimeFormatting.formatTimeUntil(departureTime)
+            if !countdown.isEmpty { parts.append(countdown) }
+        }
+
+        if parts.isEmpty {
+            button.title = ""
         } else {
-            button.title = "\(baseTitle)  \(minutesUntil)"
+            button.title = " \(parts.joined(separator: " \u{00b7} "))"
         }
     }
 
     private func startPinCountdownUpdates() {
         pinCountdownTimer?.invalidate()
-        pinCountdownTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
-            self?.updateStatusBarButtonTitle()
+        pinCountdownTimer = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in
+            self?.handlePinTimerTick()
+        }
+    }
+
+    private func handlePinTimerTick() {
+        updateStatusBarButtonTitle()
+
+        guard let pinnedRow else { return }
+
+        // Auto-close and unpin 60s after scheduled departure
+        if let departDate = TimeFormatting.parseTime(pinnedRow.departureTimePlanned),
+           Date().timeIntervalSince(departDate) > 60 {
+            unpinAndCloseCard()
+            return
+        }
+
+        // Keep the card snapshot fresh if it’s visible
+        if liveTripCardController.isVisible, let snapshot = liveTripCardSnapshot() {
+            liveTripCardController.update(snapshot: snapshot)
         }
     }
 
     private func liveTripCardSnapshot() -> LiveTripCardSnapshot? {
-        guard let trip = viewModel.tripsWithJourneys.first,
-              let journey = trip.journeys.first else {
+        guard let pinnedRow else { return nil }
+        guard let trip = viewModel.tripsWithJourneys.first(where: { $0.id == pinnedRow.tripId }),
+              let journey = trip.journeys.first(where: {
+                  $0.legs.first?.origin.departureTimePlanned == pinnedRow.departureTimePlanned
+              }) else {
             return nil
         }
 
         let firstLeg = journey.legs.first
-        let lastLeg = journey.legs.last
         let transportLeg = journey.legs.first { $0.transportation != nil }
-        let currentStop = transportLeg?.origin.name ?? firstLeg?.origin.name ?? trip.origin.name
 
-        let plannedISO = (transportLeg?.origin.departureTimePlanned ?? firstLeg?.origin.departureTimePlanned)
+        let plannedISO = transportLeg?.origin.departureTimePlanned ?? firstLeg?.origin.departureTimePlanned
         let departTime = TimeFormatting.formatTime(plannedISO)
-        let arriveTime = TimeFormatting.formatTime(lastLeg?.destination.arrivalTimePlanned)
+
+        // Clean stop name: strip ", Platform X, City" suffix and " Station" suffix
+        let rawStop = transportLeg?.origin.name ?? firstLeg?.origin.name ?? trip.origin.name
+        let currentStop = (rawStop.components(separatedBy: ",").first ?? rawStop)
+            .replacingOccurrences(of: " Station", with: "")
+            .trimmingCharacters(in: .whitespaces)
+
+        // Route: use trip name but clean up " Station"
+        let route = trip.name.replacingOccurrences(of: " Station", with: "")
 
         let platformRaw = transportLeg?.origin.properties?.platformName
-            ?? transportLeg?.origin.properties?.platform
-            ?? "TBD"
-        let platformText = platformRaw.lowercased().hasPrefix("platform") ? platformRaw : "Platform \(platformRaw)"
+            ?? transportLeg?.origin.properties?.platform ?? ""
+        let platformText = platformRaw.isEmpty ? "" :
+            (platformRaw.lowercased().hasPrefix("platform") ? platformRaw : "Platform \(platformRaw)")
 
-        var statusText = "Live"
+        var statusText = ""
         if let planned = TimeFormatting.parseTime(transportLeg?.origin.departureTimePlanned ?? firstLeg?.origin.departureTimePlanned),
            let estimated = TimeFormatting.parseTime(transportLeg?.origin.departureTimeEstimated ?? firstLeg?.origin.departureTimeEstimated) {
             let diffMins = Int(round(estimated.timeIntervalSince(planned) / 60))
@@ -390,15 +441,117 @@ class StatusBarController: NSObject, NSWindowDelegate {
         }
 
         return LiveTripCardSnapshot(
-            tripName: trip.name,
-            route: "\(trip.origin.name) → \(trip.destination.name)",
+            route: route,
             departureISOTime: plannedISO,
             departureDisplay: departTime,
-            arrivalDisplay: arriveTime,
             statusText: statusText,
             platformText: platformText,
-            currentStopText: "Current stop: \(currentStop)"
+            currentStop: currentStop
         )
+    }
+
+    // MARK: - Menu Header with Swap Button
+
+    private func makeTextMenuRow(title: String, action: MenuAction) -> NSView {
+        class HoverTextRow: NSView {
+            private var tracking: NSTrackingArea?
+            var isHovered = false { didSet { needsDisplay = true } }
+            var onSelect: (() -> Void)?
+
+            override func updateTrackingAreas() {
+                super.updateTrackingAreas()
+                if let tracking { removeTrackingArea(tracking) }
+                tracking = NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self)
+                addTrackingArea(tracking!)
+            }
+            override func mouseEntered(with event: NSEvent) { isHovered = true }
+            override func mouseExited(with event: NSEvent) { isHovered = false }
+            override func mouseDown(with event: NSEvent) { onSelect?() }
+            override func draw(_ dirtyRect: NSRect) {
+                super.draw(dirtyRect)
+                if isHovered {
+                    let insetRect = bounds.insetBy(dx: 6, dy: 2)
+                    let path = NSBezierPath(roundedRect: insetRect, xRadius: 6, yRadius: 6)
+                    NSColor.labelColor.withAlphaComponent(0.06).setFill()
+                    path.fill()
+                }
+            }
+        }
+
+        let container = HoverTextRow()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.onSelect = { action.invoke() }
+
+        let label = NSTextField(labelWithString: title)
+        label.font = .systemFont(ofSize: 13)
+        label.textColor = .labelColor
+        label.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(label)
+
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
+            label.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            container.heightAnchor.constraint(equalToConstant: 28),
+            container.widthAnchor.constraint(equalToConstant: 340),
+        ])
+
+        return container
+    }
+
+    private func makeHeaderRow(tripName: String, tripId: String) -> NSView {
+        let container = NSView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+
+        let hPad: CGFloat = 12
+
+        let titleField = NSTextField(labelWithString: tripName)
+        titleField.font = .systemFont(ofSize: 12, weight: .semibold)
+        titleField.textColor = .secondaryLabelColor
+        titleField.translatesAutoresizingMaskIntoConstraints = false
+        titleField.lineBreakMode = .byTruncatingMiddle
+
+        container.addSubview(titleField)
+
+        let swapIcon = NSImage(systemSymbolName: "arrow.left.arrow.right",
+                               accessibilityDescription: "Swap direction")!
+        let swapBtn = NSButton(image: swapIcon, target: nil, action: nil)
+        swapBtn.bezelStyle = .regularSquare
+        swapBtn.isBordered = false
+        swapBtn.translatesAutoresizingMaskIntoConstraints = false
+        swapBtn.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 11, weight: .medium)
+        swapBtn.contentTintColor = .tertiaryLabelColor
+
+        let action = MenuAction { [weak self] in
+            guard let self, let menu = self.activeMenu else { return }
+            self.store.reverseTrip(id: tripId)
+            self.buildTripsMenuContent(into: menu)
+            Task { @MainActor in
+                await self.viewModel.refresh()
+                guard let menu = self.activeMenu else { return }
+                self.buildTripsMenuContent(into: menu)
+            }
+        }
+        menuItemActions.append(action)
+        swapBtn.target = action
+        swapBtn.action = #selector(MenuAction.invoke)
+
+        container.addSubview(swapBtn)
+
+        NSLayoutConstraint.activate([
+            titleField.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: hPad),
+            titleField.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            titleField.trailingAnchor.constraint(lessThanOrEqualTo: swapBtn.leadingAnchor, constant: -6),
+
+            swapBtn.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -hPad),
+            swapBtn.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            swapBtn.widthAnchor.constraint(equalToConstant: 20),
+            swapBtn.heightAnchor.constraint(equalToConstant: 20),
+
+            container.heightAnchor.constraint(equalToConstant: 28),
+            container.widthAnchor.constraint(equalToConstant: 340)
+        ])
+
+        return container
     }
 
     // MARK: - Menu Row View
@@ -517,3 +670,4 @@ class StatusBarController: NSObject, NSWindowDelegate {
         return container
     }
 }
+

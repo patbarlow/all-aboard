@@ -1,42 +1,38 @@
 import SwiftUI
 import Sparkle
 
-enum ReleaseChannel: String {
-    case stable
-    case beta
+extension Notification.Name {
+    static let menuBarSettingsChanged = Notification.Name("menuBarSettingsChanged")
 }
 
 enum AppSettings {
-    static let releaseChannelKey = "release-channel"
-    static let enableBetaFeaturesKey = "enable-beta-features"
-    static let stableFeedURL = "https://raw.githubusercontent.com/patbarlow/all-aboard/main/appcast.xml"
-    static let betaFeedURL = "https://raw.githubusercontent.com/patbarlow/all-aboard/main/appcast-beta.xml"
+    static let showDepartureTimeKey = "show-departure-time-menu-bar"
+    static let showCountdownKey = "show-countdown-menu-bar"
+    static let feedURL = "https://raw.githubusercontent.com/patbarlow/all-aboard/main/appcast.xml"
 
-    static var releaseChannel: ReleaseChannel {
-        get {
-            guard let raw = UserDefaults.standard.string(forKey: releaseChannelKey),
-                  let channel = ReleaseChannel(rawValue: raw) else {
-                return .stable
-            }
-            return channel
-        }
+    static var showDepartureTimeInMenuBar: Bool {
+        get { UserDefaults.standard.bool(forKey: showDepartureTimeKey) }
         set {
-            UserDefaults.standard.set(newValue.rawValue, forKey: releaseChannelKey)
+            UserDefaults.standard.set(newValue, forKey: showDepartureTimeKey)
+            NotificationCenter.default.post(name: .menuBarSettingsChanged, object: nil)
         }
     }
 
-    static var enableBetaFeatures: Bool {
-        get { UserDefaults.standard.bool(forKey: enableBetaFeaturesKey) }
-        set { UserDefaults.standard.set(newValue, forKey: enableBetaFeaturesKey) }
+    static var showCountdownInMenuBar: Bool {
+        get {
+            if UserDefaults.standard.object(forKey: showCountdownKey) == nil { return true }
+            return UserDefaults.standard.bool(forKey: showCountdownKey)
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: showCountdownKey)
+            NotificationCenter.default.post(name: .menuBarSettingsChanged, object: nil)
+        }
     }
 }
 
 final class UpdateFeedDelegate: NSObject, SPUUpdaterDelegate {
     func feedURLString(for updater: SPUUpdater) -> String? {
-        switch AppSettings.releaseChannel {
-        case .stable: return AppSettings.stableFeedURL
-        case .beta: return AppSettings.betaFeedURL
-        }
+        AppSettings.feedURL
     }
 }
 
@@ -45,14 +41,14 @@ struct AllAboardApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        Settings {
-            TripCreationView(
-                store: appDelegate.store,
-                onTripsChanged: {
-                    Task { await appDelegate.viewModel.refresh() }
-                }
-            )
+        // No visible scenes — app UI is managed by StatusBarController
+        WindowGroup {
+            EmptyView()
+                .frame(width: 0, height: 0)
+                .hidden()
         }
+        .defaultSize(width: 0, height: 0)
+        .windowResizability(.contentSize)
     }
 }
 
