@@ -220,7 +220,7 @@ class StatusBarController: NSObject, NSWindowDelegate {
             return
         }
 
-        let rootView = MainWindowView(store: store, selectionController: selectionController) { [weak self] in
+        let rootView = MainWindowView(store: store, selectionController: selectionController, updaterController: updaterController) { [weak self] in
             guard let self else { return }
             Task { @MainActor in
                 await self.viewModel.refresh()

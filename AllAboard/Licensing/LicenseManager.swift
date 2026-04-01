@@ -93,6 +93,22 @@ class LicenseManager {
         keychainDelete(account: instanceIdAccount)
     }
 
+    /// Tells LemonSqueezy to release this activation seat, then clears local keychain.
+    /// API errors are ignored — local data is always cleared regardless.
+    func deactivateFromServer() async {
+        if let key = storedLicenseKey, let instanceId = storedInstanceId {
+            let url = URL(string: "https://api.lemonsqueezy.com/v1/licenses/deactivate")!
+            var request = URLRequest(url: url)
+            request.httpMethod = "DELETE"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            let body: [String: String] = ["license_key": key, "instance_id": instanceId]
+            request.httpBody = try? JSONEncoder().encode(body)
+            _ = try? await URLSession.shared.data(for: request)
+        }
+        deactivate()
+    }
+
     // MARK: - Keychain
 
     private func keychainGet(account: String) -> String? {

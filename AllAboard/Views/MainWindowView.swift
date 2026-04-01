@@ -1,4 +1,5 @@
 import SwiftUI
+import Sparkle
 
 // MARK: - Sidebar Navigation
 
@@ -17,6 +18,7 @@ class WindowSelectionController {
 struct MainWindowView: View {
     var store: TripStore
     var selectionController: WindowSelectionController
+    var updaterController: SPUStandardUpdaterController
     var onTripsChanged: (() -> Void)?
 
     @State private var selection: SidebarDestination?
@@ -36,9 +38,10 @@ struct MainWindowView: View {
 
     private let rowHeight: CGFloat = 36 // 32pt button + 4pt spacing
 
-    init(store: TripStore, selectionController: WindowSelectionController, onTripsChanged: (() -> Void)? = nil) {
+    init(store: TripStore, selectionController: WindowSelectionController, updaterController: SPUStandardUpdaterController, onTripsChanged: (() -> Void)? = nil) {
         self.store = store
         self.selectionController = selectionController
+        self.updaterController = updaterController
         self.onTripsChanged = onTripsChanged
         self._tripCreationVM = State(initialValue: TripCreationViewModel(store: store))
     }
@@ -110,7 +113,7 @@ struct MainWindowView: View {
             .frame(width: 460, height: 480)
         }
         .sheet(isPresented: $showingSettings) {
-            SettingsSheet(onDismiss: { showingSettings = false })
+            SettingsSheet(updaterController: updaterController, onDismiss: { showingSettings = false })
                 .frame(width: 520, height: 380)
         }
     }
@@ -333,11 +336,14 @@ struct MainWindowView: View {
 private enum SettingsTab: Hashable {
     case menuBar
     case shortcuts
+    case license
 }
 
 private struct SettingsSheet: View {
+    var updaterController: SPUStandardUpdaterController
     var onDismiss: () -> Void
     @State private var selectedTab: SettingsTab = .menuBar
+    @State private var showDeactivateAlert = false
 
     var body: some View {
         HStack(spacing: 0) {
@@ -356,14 +362,15 @@ private struct SettingsSheet: View {
                 AppButton("Shortcuts", systemImage: "command", variant: .subtle, isActive: selectedTab == .shortcuts, fullWidth: true) {
                     selectedTab = .shortcuts
                 }
+                AppButton("License", systemImage: "key", variant: .subtle, isActive: selectedTab == .license, fullWidth: true) {
+                    selectedTab = .license
+                }
 
                 Spacer()
 
                 // Check for updates
                 AppButton("Check for Updates", systemImage: "arrow.clockwise", variant: .subtle, fullWidth: true) {
-                    if let appDelegate = NSApp.delegate as? AppDelegate {
-                        appDelegate.updaterController.checkForUpdates(nil)
-                    }
+                    updaterController.checkForUpdates(nil)
                 }
             }
             .padding(8)
@@ -372,7 +379,7 @@ private struct SettingsSheet: View {
             // Settings content
             VStack(alignment: .leading, spacing: 0) {
                 // Header
-                Text(selectedTab == .menuBar ? "Menu Bar" : "Keyboard Shortcuts")
+                Text(selectedTab == .menuBar ? "Menu Bar" : selectedTab == .shortcuts ? "Keyboard Shortcuts" : "License")
                     .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(AppColors.primaryText)
                     .padding(.horizontal, 20)
@@ -390,6 +397,8 @@ private struct SettingsSheet: View {
                             menuBarSettings
                         case .shortcuts:
                             shortcutsSettings
+                        case .license:
+                            licenseSettings
                         }
                     }
                     .padding(.horizontal, 20)
@@ -399,16 +408,17 @@ private struct SettingsSheet: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(AppColors.contentBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
             .overlay(
-                RoundedRectangle(cornerRadius: 6)
+                RoundedRectangle(cornerRadius: 10)
                     .stroke(AppColors.contentBorder, lineWidth: 1)
             )
-            .padding(.trailing, 6)
-            .padding(.bottom, 6)
-            .padding(.top, 6)
+            .padding(.trailing, 8)
+            .padding(.bottom, 8)
+            .padding(.top, 8)
         }
         .background(AppColors.sidebarBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
     // MARK: - Menu Bar Settings
@@ -443,6 +453,75 @@ private struct SettingsSheet: View {
             shortcutRow("Delete trip", keys: ["\u{2318}", "\u{232B}"])
         }
     }
+
+    // MARK: - License Settings
+
+    private var licenseSettings: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Activation status
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.seal.fill")
+                    .foregroundStyle(.green)
+                    .font(.system(size: 14))
+                Text("License activated")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(AppColors.primaryText)
+            }
+
+            // License key
+            if let key = LicenseManager.shared.storedLicenseKey {
+                HStack {
+                    Text("License key")
+                        .font(.system(size: 12))
+                        .foregroundStyle(AppColors.tertiaryText)
+                    Spacer()
+                    Text(maskedKey(key))
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(AppColors.secondaryText)
+                }
+                .padding(12)
+                .background(AppColors.cardBackground, in: RoundedRectangle(cornerRadius: 8))
+            }
+
+            Link("Manage license \u{2192}", destination: URL(string: "https://app.lemonsqueezy.com/my-orders")!)
+                .font(.system(size: 13))
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Moving to a new Mac? Deactivate this license to free your activation.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(AppColors.tertiaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                AppButton("Deactivate License", variant: .secondary, fullWidth: true) {
+                    showDeactivateAlert = true
+                }
+            }
+        }
+        .alert("Deactivate License?", isPresented: $showDeactivateAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Deactivate", role: .destructive) {
+                Task { await deactivateLicense() }
+            }
+        } message: {
+            Text("This will remove your license from this Mac and quit All Aboard. Reopen the app to activate a new key.")
+        }
+    }
+
+    private func maskedKey(_ key: String) -> String {
+        let parts = key.components(separatedBy: "-")
+        guard parts.count >= 2 else { return String(repeating: "\u{2022}", count: key.count) }
+        let masked = parts.dropLast().map { String(repeating: "\u{2022}", count: $0.count) }
+        return (masked + [parts.last!]).joined(separator: "-")
+    }
+
+    private func deactivateLicense() async {
+        await LicenseManager.shared.deactivateFromServer()
+        await MainActor.run { NSApp.terminate(nil) }
+    }
+
+    // MARK: - Keyboard Shortcuts Settings
 
     private func shortcutRow(_ action: String, keys: [String]) -> some View {
         HStack {
