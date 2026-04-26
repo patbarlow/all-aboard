@@ -1,4 +1,35 @@
 import SwiftUI
+import Sparkle
+
+// Visual radius constants for consistent rounding
+private struct UIRadius {
+    static let parentCard: CGFloat = 8    // large containers (main content, settings sheet)
+    static let sheetContainer: CGFloat = 8 // outer settings sheet container
+    static let sheetInset: CGFloat = 8      // sheet content padding from edges
+    static let sheetCard: CGFloat = 8      // inner card inside settings sheet
+    static let innerTile: CGFloat = 8     // smaller tiles inside cards (license key, input rows)
+    static let keycap: CGFloat = 8        // tiny keycap-like elements
+}
+
+// Reusable card styling for content surfaces
+private struct AppCardModifier: ViewModifier {
+    let cornerRadius: CGFloat
+    func body(content: Content) -> some View {
+        content
+            .background(AppColors.contentBackground)
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .stroke(AppColors.contentBorder, lineWidth: 1)
+            )
+    }
+}
+
+private extension View {
+    func appCard(cornerRadius: CGFloat) -> some View {
+        modifier(AppCardModifier(cornerRadius: cornerRadius))
+    }
+}
 
 // MARK: - Sidebar Navigation
 
@@ -17,6 +48,7 @@ class WindowSelectionController {
 struct MainWindowView: View {
     var store: TripStore
     var selectionController: WindowSelectionController
+    var updaterController: SPUStandardUpdaterController
     var onTripsChanged: (() -> Void)?
 
     @State private var selection: SidebarDestination?
@@ -36,9 +68,10 @@ struct MainWindowView: View {
 
     private let rowHeight: CGFloat = 36 // 32pt button + 4pt spacing
 
-    init(store: TripStore, selectionController: WindowSelectionController, onTripsChanged: (() -> Void)? = nil) {
+    init(store: TripStore, selectionController: WindowSelectionController, updaterController: SPUStandardUpdaterController, onTripsChanged: (() -> Void)? = nil) {
         self.store = store
         self.selectionController = selectionController
+        self.updaterController = updaterController
         self.onTripsChanged = onTripsChanged
         self._tripCreationVM = State(initialValue: TripCreationViewModel(store: store))
     }
@@ -56,12 +89,7 @@ struct MainWindowView: View {
             // Content card
             detail
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(AppColors.contentBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(AppColors.contentBorder, lineWidth: 1)
-                )
+                .appCard(cornerRadius: UIRadius.parentCard)
                 .padding(.trailing, 8)
                 .padding(.bottom, 8)
                 .padding(.top, 8)
@@ -102,16 +130,38 @@ struct MainWindowView: View {
                 Task { await fetchJourneys() }
             }
         }
-        .sheet(isPresented: $showingAddTrip) {
-            AddTripSheet(store: store, viewModel: tripCreationVM, onTripsChanged: onTripsChanged) { tripId in
-                if let tripId { selection = .trip(tripId) }
-                showingAddTrip = false
+        .overlay {
+            if showingSettings || showingAddTrip {
+                ZStack {
+                    Color.black.opacity(0.24)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            showingSettings = false
+                            showingAddTrip = false
+                        }
+
+                    Group {
+                        if showingSettings {
+                            SettingsSheet(updaterController: updaterController, onDismiss: { showingSettings = false })
+                                .frame(width: 520, height: 380)
+                                .clipShape(RoundedRectangle(cornerRadius: UIRadius.parentCard))
+                        } else if showingAddTrip {
+                            AddTripSheet(store: store, viewModel: tripCreationVM, onTripsChanged: onTripsChanged) { tripId in
+                                if let tripId { selection = .trip(tripId) }
+                                showingAddTrip = false
+                            }
+                            .frame(width: 460, height: 480)
+                            .appCard(cornerRadius: UIRadius.parentCard)
+                        }
+                    }
+                    .shadow(color: .black.opacity(0.08), radius: 18, x: 0, y: 8)
+                }
+                .zIndex(1000)
+                .transition(.opacity)
             }
-            .frame(width: 460, height: 480)
         }
-        .sheet(isPresented: $showingSettings) {
-            SettingsSheet(onDismiss: { showingSettings = false })
-                .frame(width: 520, height: 380)
+        .onChange(of: showingSettings || showingAddTrip) { _, isShowing in
+            NotificationCenter.default.post(name: .modalVisibilityChanged, object: isShowing)
         }
     }
 
@@ -333,11 +383,14 @@ struct MainWindowView: View {
 private enum SettingsTab: Hashable {
     case menuBar
     case shortcuts
+    case account
 }
 
 private struct SettingsSheet: View {
+    var updaterController: SPUStandardUpdaterController
     var onDismiss: () -> Void
     @State private var selectedTab: SettingsTab = .menuBar
+    @State private var showSignOutAlert = false
 
     var body: some View {
         HStack(spacing: 0) {
@@ -356,14 +409,15 @@ private struct SettingsSheet: View {
                 AppButton("Shortcuts", systemImage: "command", variant: .subtle, isActive: selectedTab == .shortcuts, fullWidth: true) {
                     selectedTab = .shortcuts
                 }
+                AppButton("Account", systemImage: "person.circle", variant: .subtle, isActive: selectedTab == .account, fullWidth: true) {
+                    selectedTab = .account
+                }
 
                 Spacer()
 
                 // Check for updates
                 AppButton("Check for Updates", systemImage: "arrow.clockwise", variant: .subtle, fullWidth: true) {
-                    if let appDelegate = NSApp.delegate as? AppDelegate {
-                        appDelegate.updaterController.checkForUpdates(nil)
-                    }
+                    updaterController.checkForUpdates(nil)
                 }
             }
             .padding(8)
@@ -372,7 +426,7 @@ private struct SettingsSheet: View {
             // Settings content
             VStack(alignment: .leading, spacing: 0) {
                 // Header
-                Text(selectedTab == .menuBar ? "Menu Bar" : "Keyboard Shortcuts")
+                Text(selectedTab == .menuBar ? "Menu Bar" : selectedTab == .shortcuts ? "Keyboard Shortcuts" : "Account")
                     .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(AppColors.primaryText)
                     .padding(.horizontal, 20)
@@ -390,6 +444,8 @@ private struct SettingsSheet: View {
                             menuBarSettings
                         case .shortcuts:
                             shortcutsSettings
+                        case .account:
+                            accountSettings
                         }
                     }
                     .padding(.horizontal, 20)
@@ -398,15 +454,10 @@ private struct SettingsSheet: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(AppColors.contentBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(AppColors.contentBorder, lineWidth: 1)
-            )
-            .padding(.trailing, 6)
-            .padding(.bottom, 6)
-            .padding(.top, 6)
+            .appCard(cornerRadius: UIRadius.sheetCard)
+            .padding(.trailing, 8)
+            .padding(.bottom, 8)
+            .padding(.top, 8)
         }
         .background(AppColors.sidebarBackground)
     }
@@ -444,6 +495,72 @@ private struct SettingsSheet: View {
         }
     }
 
+    // MARK: - Account Settings
+
+    private var accountSettings: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Signed-in email
+            if let email = AuthManager.shared.cachedUser?.email {
+                HStack {
+                    Text("Signed in as")
+                        .font(.system(size: 12))
+                        .foregroundStyle(AppColors.tertiaryText)
+                    Spacer()
+                    Text(email)
+                        .font(.system(size: 12))
+                        .foregroundStyle(AppColors.secondaryText)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+                .padding(12)
+                .background(AppColors.cardBackground, in: RoundedRectangle(cornerRadius: UIRadius.innerTile))
+            }
+
+            // Subscription status
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.seal.fill")
+                    .foregroundStyle(.green)
+                    .font(.system(size: 14))
+                Text("Subscription active")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(AppColors.primaryText)
+            }
+
+            AppButton("Manage subscription \u{2192}", variant: .secondary, fullWidth: true) {
+                Task { await openPortal() }
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Signing out will require you to sign back in to use All Aboard.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(AppColors.tertiaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                AppButton("Sign Out", variant: .secondary, fullWidth: true) {
+                    showSignOutAlert = true
+                }
+            }
+        }
+        .alert("Sign Out?", isPresented: $showSignOutAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Sign Out", role: .destructive) {
+                AuthManager.shared.signOut()
+                NSApp.terminate(nil)
+            }
+        } message: {
+            Text("You will need to sign back in to use All Aboard.")
+        }
+    }
+
+    private func openPortal() async {
+        guard let url = try? await AuthManager.shared.portalURL() else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    // MARK: - Keyboard Shortcuts Settings
+
     private func shortcutRow(_ action: String, keys: [String]) -> some View {
         HStack {
             Text(action)
@@ -456,7 +573,7 @@ private struct SettingsSheet: View {
                         .font(.system(size: 11, weight: .medium, design: .rounded))
                         .foregroundStyle(AppColors.secondaryText)
                         .frame(minWidth: 22, minHeight: 22)
-                        .background(AppColors.cardBackground, in: RoundedRectangle(cornerRadius: 5))
+                        .background(AppColors.cardBackground, in: RoundedRectangle(cornerRadius: UIRadius.keycap))
                 }
             }
         }
@@ -549,7 +666,7 @@ private struct AddTripSheet: View {
                             }
                         }
                         .padding(12)
-                        .background(AppColors.cardBackground, in: RoundedRectangle(cornerRadius: 8))
+                        .background(AppColors.cardBackground, in: RoundedRectangle(cornerRadius: UIRadius.innerTile))
                     }
 
                     VStack(alignment: .leading, spacing: 6) {
@@ -564,7 +681,7 @@ private struct AddTripSheet: View {
                                 .onKeyPress(.upArrow) { nudge(-1); return .handled }
                         }
                         .padding(10)
-                        .background(AppColors.cardBackground, in: RoundedRectangle(cornerRadius: 8))
+                        .background(AppColors.cardBackground, in: RoundedRectangle(cornerRadius: UIRadius.innerTile))
                     }
                     .onChange(of: originInput) { _, val in
                         guard viewModel.selectedOrigin == nil else { return }
@@ -602,7 +719,7 @@ private struct AddTripSheet: View {
                                     }
                                     .padding(.horizontal, 10).padding(.vertical, 7)
                                     .background(index == selectedResultIndex ? Color.accentColor.opacity(0.1) : Color.clear,
-                                                in: RoundedRectangle(cornerRadius: 6))
+                                                in: RoundedRectangle(cornerRadius: UIRadius.innerTile))
                                     .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
@@ -658,3 +775,4 @@ private struct AddTripSheet: View {
         }
     }
 }
+

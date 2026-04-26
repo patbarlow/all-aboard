@@ -5,6 +5,12 @@ All notable changes to All Aboard will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-04-26
+
+### Changed
+- Switched from one-time license keys to a monthly subscription. Sign in with your email to get started — 7-day free trial included, no credit card required.
+- Settings: License tab replaced with Account tab showing your email and subscription status.
+
 ## [Unreleased]
 
 ### Added

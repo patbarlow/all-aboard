@@ -1,0 +1,22 @@
+#!/bin/bash
+set -e
+
+PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT="All Aboard.xcodeproj"
+SCHEME="All Aboard"
+BUILD_DIR="$PROJECT_DIR/.build"
+APP="$BUILD_DIR/Debug/All Aboard.app"
+
+echo "Building debug..."
+
+xcodebuild \
+  -project "$PROJECT_DIR/$PROJECT" \
+  -scheme "$SCHEME" \
+  -configuration Debug \
+  SYMROOT="$BUILD_DIR" \
+  build
+
+echo "Launching..."
+pkill -f "$APP" 2>/dev/null || true
+sleep 0.5
+open "$APP"
