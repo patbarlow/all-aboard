@@ -3,28 +3,12 @@
     <channel>
         <title>All Aboard</title>
         <item>
-            <title>1.3.1</title>
-            <pubDate>Tue, 01 Apr 2026 19:30:00 +1100</pubDate>
-            <sparkle:version>6</sparkle:version>
-            <sparkle:shortVersionString>1.3.1</sparkle:shortVersionString>
+            <title>1.4.0</title>
+            <pubDate>Sun, 26 Apr 2026 21:49:13 +1000</pubDate>
+            <sparkle:version>7</sparkle:version>
+            <sparkle:shortVersionString>1.4.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/patbarlow/all-aboard/releases/download/v1.3.1/AllAboard.dmg" length="3674216" type="application/octet-stream" sparkle:edSignature="YQw6H+Koy7pwTk1T1P9lpqyLG9OpHW9yK6XanxwNE0JnFDw4hmBn5UVnQGuGJx4H6GshugCx+5os9N2XpSM7Ag=="/>
-        </item>
-        <item>
-            <title>1.3.0</title>
-            <pubDate>Tue, 01 Apr 2026 18:30:00 +1100</pubDate>
-            <sparkle:version>5</sparkle:version>
-            <sparkle:shortVersionString>1.3.0</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/patbarlow/all-aboard/releases/download/v1.3.0/AllAboard.dmg" length="3674589" type="application/octet-stream" sparkle:edSignature="Qbwl/DG6bOxrf88qvezsx/tpDu0IOovg8gJJcKpRU6ynqtFE84lV8LWyDWVFGEfdDy6Fw0DsMoaU2ROajPc/BQ=="/>
-        </item>
-        <item>
-            <title>1.0.0</title>
-            <pubDate>Mon, 23 Mar 2026 19:07:07 +1100</pubDate>
-            <sparkle:version>1</sparkle:version>
-            <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/patbarlow/all-aboard/releases/download/v1.0.0/All%20Aboard.dmg" length="1639484" type="application/octet-stream" sparkle:edSignature="qEhe5A7/GaNStvx9LalkdnC2vkgQ2f0hz80WHPvmbZZGEjGjwu8WW49o7dGTjzp08QVnNiOzKwPpSRXWUpT/BQ=="/>
+            <enclosure url="https://github.com/patbarlow/all-aboard/releases/latest/download/All%20Aboard.dmg" length="2282752" type="application/octet-stream" sparkle:edSignature="kwQW62r0PXaq/XNbOXRL7uCdYzF5LIy7PoAj20HffPhNlmLaXzACzm1pngTEewnNLUR8CqKuFpZ92uRwG3aiAw=="/>
         </item>
     </channel>
 </rss>
