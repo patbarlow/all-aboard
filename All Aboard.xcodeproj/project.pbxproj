@@ -15,7 +15,6 @@
 		46821C70F5C77DC2FCF4273B /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0BC66E1F2DA02067FAFD4E2 /* SignInView.swift */; };
 		469B06078DF4065107D9DC05 /* TripStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6049F044EF96494F70E42A /* TripStore.swift */; };
 		4FF295DDBE99B3979659CD7B /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D63788DEEBCFACB7645234A /* AuthManager.swift */; };
-		59115EAB10FFE28AAA2B9D60 /* LicenseActivationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BC45CEB3886B37F637B7E0 /* LicenseActivationView.swift */; };
 		5A897EB66AD58500098934BE /* TripDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EDC5A6A6A375558D4E90D2F /* TripDetailView.swift */; };
 		6489BD603790B594FC059342 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FEB84E4FAD7F551266AEB1E /* APIClient.swift */; };
 		66EA5820A6E1BFABD214450F /* TripCreationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70ED6174B2E99DD17E4E500B /* TripCreationView.swift */; };
@@ -29,7 +28,6 @@
 		BBC837BDAD1986A8E297CC8E /* SidebarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F079CE63DCBC540FBC1F494 /* SidebarItem.swift */; };
 		CF772E19B165CB98128AA638 /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D8715A61EC0A55AE995C55 /* StatusBarController.swift */; };
 		D8A526C25FA7E61C90742427 /* LiveTripCardPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD5437D470ED8C424CB4625 /* LiveTripCardPanelController.swift */; };
-		DD98204407BEAAB0B2C613BC /* LicenseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E987D5A4F302D3B9BA9A64 /* LicenseManager.swift */; };
 		E3C5C4DA21110BA783C37587 /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 942CC12DDD8235891C6D2D1E /* AppColors.swift */; };
 		E9548F95E702E4EB1F626A3D /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46A066A0E2F7B40F57C5FC36 /* MenuBarView.swift */; };
 		F2E55E4A3B3A658C1E894E83 /* TimeFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4DE332C959DE95D4D652496 /* TimeFormatting.swift */; };
@@ -38,13 +36,11 @@
 /* Begin PBXFileReference section */
 		0F079CE63DCBC540FBC1F494 /* SidebarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarItem.swift; sourceTree = "<group>"; };
 		0FECBA7D98D5022744CF5452 /* TripCreationViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripCreationViewModel.swift; sourceTree = "<group>"; };
-		11BC45CEB3886B37F637B7E0 /* LicenseActivationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseActivationView.swift; sourceTree = "<group>"; };
 		1B863AA604CCB21920920AFA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		1F323A7E1EAAE8598649B765 /* MenuBarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarViewModel.swift; sourceTree = "<group>"; };
 		2EDC5A6A6A375558D4E90D2F /* TripDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripDetailView.swift; sourceTree = "<group>"; };
 		2FEB84E4FAD7F551266AEB1E /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		46A066A0E2F7B40F57C5FC36 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
-		65E987D5A4F302D3B9BA9A64 /* LicenseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseManager.swift; sourceTree = "<group>"; };
 		69D8715A61EC0A55AE995C55 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
 		70ED6174B2E99DD17E4E500B /* TripCreationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripCreationView.swift; sourceTree = "<group>"; };
 		8C6049F044EF96494F70E42A /* TripStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripStore.swift; sourceTree = "<group>"; };
@@ -185,8 +181,6 @@
 			isa = PBXGroup;
 			children = (
 				9D63788DEEBCFACB7645234A /* AuthManager.swift */,
-				11BC45CEB3886B37F637B7E0 /* LicenseActivationView.swift */,
-				65E987D5A4F302D3B9BA9A64 /* LicenseManager.swift */,
 				E0BC66E1F2DA02067FAFD4E2 /* SignInView.swift */,
 			);
 			path = Licensing;
@@ -274,8 +268,6 @@
 				6C20E957463A4E9A197552AB /* AppButton.swift in Sources */,
 				E3C5C4DA21110BA783C37587 /* AppColors.swift in Sources */,
 				4FF295DDBE99B3979659CD7B /* AuthManager.swift in Sources */,
-				59115EAB10FFE28AAA2B9D60 /* LicenseActivationView.swift in Sources */,
-				DD98204407BEAAB0B2C613BC /* LicenseManager.swift in Sources */,
 				D8A526C25FA7E61C90742427 /* LiveTripCardPanelController.swift in Sources */,
 				7A265735E4B02DB4F83046DC /* LiveTripCardView.swift in Sources */,
 				671A3D529F037F4A18B0715F /* MainWindowView.swift in Sources */,
@@ -423,14 +415,14 @@
 				CODE_SIGN_ENTITLEMENTS = AllAboard/AllAboard.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 7;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = AllAboard/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.2.0;
+				MARKETING_VERSION = 1.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.allaboard.app;
 				SDKROOT = macosx;
 			};
@@ -443,14 +435,14 @@
 				CODE_SIGN_ENTITLEMENTS = AllAboard/AllAboard.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 7;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = AllAboard/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.2.0;
+				MARKETING_VERSION = 1.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.allaboard.app;
 				SDKROOT = macosx;
 			};
