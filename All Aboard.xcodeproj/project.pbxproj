@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -12,52 +12,56 @@
 		14A7A5B1A768110ED5F5D539 /* TripCreationViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FECBA7D98D5022744CF5452 /* TripCreationViewModel.swift */; };
 		165642C018B707581954B5C7 /* AllAboardApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBB92BD04760D201F400B8E5 /* AllAboardApp.swift */; };
 		1A6FF4B853B7531FDECCCDF9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F6ADA024A62CE2B81A9CDEFD /* Assets.xcassets */; };
-		430FA5F22F7178A000EE9303 /* LicenseActivationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 430FA5EF2F7178A000EE9303 /* LicenseActivationView.swift */; };
-		430FA5F32F7178A000EE9303 /* LicenseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 430FA5F02F7178A000EE9303 /* LicenseManager.swift */; };
-		435BC9802F7CF89A0094252E /* All Aboard.icon in Resources */ = {isa = PBXBuildFile; fileRef = 435BC97F2F7CF89A0094252E /* All Aboard.icon */; };
+		46821C70F5C77DC2FCF4273B /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0BC66E1F2DA02067FAFD4E2 /* SignInView.swift */; };
 		469B06078DF4065107D9DC05 /* TripStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6049F044EF96494F70E42A /* TripStore.swift */; };
+		4FF295DDBE99B3979659CD7B /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D63788DEEBCFACB7645234A /* AuthManager.swift */; };
+		59115EAB10FFE28AAA2B9D60 /* LicenseActivationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BC45CEB3886B37F637B7E0 /* LicenseActivationView.swift */; };
+		5A897EB66AD58500098934BE /* TripDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EDC5A6A6A375558D4E90D2F /* TripDetailView.swift */; };
 		6489BD603790B594FC059342 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FEB84E4FAD7F551266AEB1E /* APIClient.swift */; };
 		66EA5820A6E1BFABD214450F /* TripCreationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70ED6174B2E99DD17E4E500B /* TripCreationView.swift */; };
+		671A3D529F037F4A18B0715F /* MainWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCABFB9F1F5CCAFC13C36B5D /* MainWindowView.swift */; };
 		6B0F4F54273AC5CB0E06C17D /* MenuBarViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F323A7E1EAAE8598649B765 /* MenuBarViewModel.swift */; };
+		6C20E957463A4E9A197552AB /* AppButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9675BBACA512400BA862D727 /* AppButton.swift */; };
+		7A265735E4B02DB4F83046DC /* LiveTripCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFADF151472CB4ABEF1EF92D /* LiveTripCardView.swift */; };
 		7DC9AE333487CE0C1D4323D1 /* TransportMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E4414431597546BBBC0F46 /* TransportMode.swift */; };
 		98696DA57BF1DD39CAB7D752 /* APIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F503CBCF1982BDBB02E1D672 /* APIModels.swift */; };
-		AA000001AA000001AA000001 /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000001AA000001AA000010 /* AppColors.swift */; };
-		AA000001AA000001AA000002 /* AppButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000001AA000001AA000020 /* AppButton.swift */; };
-		AA000001AA000001AA000003 /* SidebarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000001AA000001AA000030 /* SidebarItem.swift */; };
+		B236900A0A2BF6B08C854D36 /* All Aboard.icon in Resources */ = {isa = PBXBuildFile; fileRef = D7AB968B989EE62C3CEFE843 /* All Aboard.icon */; };
+		BBC837BDAD1986A8E297CC8E /* SidebarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F079CE63DCBC540FBC1F494 /* SidebarItem.swift */; };
 		CF772E19B165CB98128AA638 /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D8715A61EC0A55AE995C55 /* StatusBarController.swift */; };
-		D1A2B3C4E5F60718293A4B5C /* LiveTripCardPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A2B3C4E5F6071829000001 /* LiveTripCardPanelController.swift */; };
-		D1A2B3C4E5F60718293A4B5D /* LiveTripCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A2B3C4E5F6071829000002 /* LiveTripCardView.swift */; };
-		D1A2B3C4E5F60718293A4B5E /* MainWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A2B3C4E5F6071829000003 /* MainWindowView.swift */; };
-		D1A2B3C4E5F60718293A4B5F /* TripDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A2B3C4E5F6071829000004 /* TripDetailView.swift */; };
+		D8A526C25FA7E61C90742427 /* LiveTripCardPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD5437D470ED8C424CB4625 /* LiveTripCardPanelController.swift */; };
+		DD98204407BEAAB0B2C613BC /* LicenseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E987D5A4F302D3B9BA9A64 /* LicenseManager.swift */; };
+		E3C5C4DA21110BA783C37587 /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 942CC12DDD8235891C6D2D1E /* AppColors.swift */; };
 		E9548F95E702E4EB1F626A3D /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46A066A0E2F7B40F57C5FC36 /* MenuBarView.swift */; };
 		F2E55E4A3B3A658C1E894E83 /* TimeFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4DE332C959DE95D4D652496 /* TimeFormatting.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0F079CE63DCBC540FBC1F494 /* SidebarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarItem.swift; sourceTree = "<group>"; };
 		0FECBA7D98D5022744CF5452 /* TripCreationViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripCreationViewModel.swift; sourceTree = "<group>"; };
+		11BC45CEB3886B37F637B7E0 /* LicenseActivationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseActivationView.swift; sourceTree = "<group>"; };
 		1B863AA604CCB21920920AFA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		1F323A7E1EAAE8598649B765 /* MenuBarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarViewModel.swift; sourceTree = "<group>"; };
+		2EDC5A6A6A375558D4E90D2F /* TripDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripDetailView.swift; sourceTree = "<group>"; };
 		2FEB84E4FAD7F551266AEB1E /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
-		430FA5EF2F7178A000EE9303 /* LicenseActivationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseActivationView.swift; sourceTree = "<group>"; };
-		430FA5F02F7178A000EE9303 /* LicenseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseManager.swift; sourceTree = "<group>"; };
-		435BC97F2F7CF89A0094252E /* All Aboard.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = "All Aboard.icon"; sourceTree = "<group>"; };
 		46A066A0E2F7B40F57C5FC36 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
+		65E987D5A4F302D3B9BA9A64 /* LicenseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseManager.swift; sourceTree = "<group>"; };
 		69D8715A61EC0A55AE995C55 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
 		70ED6174B2E99DD17E4E500B /* TripCreationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripCreationView.swift; sourceTree = "<group>"; };
 		8C6049F044EF96494F70E42A /* TripStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripStore.swift; sourceTree = "<group>"; };
 		8F6BE7481AA058D46C7A7E28 /* AllAboard.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AllAboard.entitlements; sourceTree = "<group>"; };
+		942CC12DDD8235891C6D2D1E /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
+		9675BBACA512400BA862D727 /* AppButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppButton.swift; sourceTree = "<group>"; };
+		9D63788DEEBCFACB7645234A /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
+		9DD5437D470ED8C424CB4625 /* LiveTripCardPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveTripCardPanelController.swift; sourceTree = "<group>"; };
 		A7E4414431597546BBBC0F46 /* TransportMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportMode.swift; sourceTree = "<group>"; };
-		AA000001AA000001AA000010 /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
-		AA000001AA000001AA000020 /* AppButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppButton.swift; sourceTree = "<group>"; };
-		AA000001AA000001AA000030 /* SidebarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarItem.swift; sourceTree = "<group>"; };
 		BBB92BD04760D201F400B8E5 /* AllAboardApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllAboardApp.swift; sourceTree = "<group>"; };
 		BE8A93D509A6AF85C2F21057 /* All Aboard.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "All Aboard.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CCABFB9F1F5CCAFC13C36B5D /* MainWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowView.swift; sourceTree = "<group>"; };
 		D021E21156BE55E9A05F1253 /* SavedTrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedTrip.swift; sourceTree = "<group>"; };
-		D1A2B3C4E5F6071829000001 /* LiveTripCardPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveTripCardPanelController.swift; sourceTree = "<group>"; };
-		D1A2B3C4E5F6071829000002 /* LiveTripCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveTripCardView.swift; sourceTree = "<group>"; };
-		D1A2B3C4E5F6071829000003 /* MainWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowView.swift; sourceTree = "<group>"; };
-		D1A2B3C4E5F6071829000004 /* TripDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripDetailView.swift; sourceTree = "<group>"; };
 		D4DE332C959DE95D4D652496 /* TimeFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeFormatting.swift; sourceTree = "<group>"; };
+		D7AB968B989EE62C3CEFE843 /* All Aboard.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = "All Aboard.icon"; sourceTree = "<group>"; };
+		DFADF151472CB4ABEF1EF92D /* LiveTripCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveTripCardView.swift; sourceTree = "<group>"; };
+		E0BC66E1F2DA02067FAFD4E2 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		F503CBCF1982BDBB02E1D672 /* APIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIModels.swift; sourceTree = "<group>"; };
 		F6ADA024A62CE2B81A9CDEFD /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -77,19 +81,18 @@
 		166166002D1E3E651D6BC3D8 /* AllAboard */ = {
 			isa = PBXGroup;
 			children = (
+				D7AB968B989EE62C3CEFE843 /* All Aboard.icon */,
 				8F6BE7481AA058D46C7A7E28 /* AllAboard.entitlements */,
 				BBB92BD04760D201F400B8E5 /* AllAboardApp.swift */,
-				435BC97F2F7CF89A0094252E /* All Aboard.icon */,
-				BE8A93D509A6AF85C2F21057 /* All Aboard.app */,
 				F6ADA024A62CE2B81A9CDEFD /* Assets.xcassets */,
 				1B863AA604CCB21920920AFA /* Info.plist */,
-				D1A2B3C4E5F6071829000001 /* LiveTripCardPanelController.swift */,
+				9DD5437D470ED8C424CB4625 /* LiveTripCardPanelController.swift */,
 				69D8715A61EC0A55AE995C55 /* StatusBarController.swift */,
+				BD12112321B81875B55FE6F3 /* Licensing */,
 				BAA37E49D35394DF7E1AFFBE /* Models */,
 				4E508E0453B2FE572A8E961E /* Networking */,
 				2DA5E9DF99BB458E96F4FAF0 /* Persistence */,
 				76ECBF59AD64353BCCC69538 /* Utilities */,
-				430FA5F12F7178A000EE9303 /* Licensing */,
 				1E7A138FA5E14E56E1DDC01E /* ViewModels */,
 				A36FA9EED4EAF4DB96B4BF01 /* Views */,
 			);
@@ -121,15 +124,6 @@
 			);
 			sourceTree = "<group>";
 		};
-		430FA5F12F7178A000EE9303 /* Licensing */ = {
-			isa = PBXGroup;
-			children = (
-				430FA5EF2F7178A000EE9303 /* LicenseActivationView.swift */,
-				430FA5F02F7178A000EE9303 /* LicenseManager.swift */,
-			);
-			path = Licensing;
-			sourceTree = "<group>";
-		};
 		4E508E0453B2FE572A8E961E /* Networking */ = {
 			isa = PBXGroup;
 			children = (
@@ -146,9 +140,20 @@
 			path = Utilities;
 			sourceTree = "<group>";
 		};
+		8CA704D0C55FEB6A31FEFEF7 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				9675BBACA512400BA862D727 /* AppButton.swift */,
+				942CC12DDD8235891C6D2D1E /* AppColors.swift */,
+				0F079CE63DCBC540FBC1F494 /* SidebarItem.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
 		9A40BE346BA8E99F2BCD608C /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				BE8A93D509A6AF85C2F21057 /* All Aboard.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -156,24 +161,14 @@
 		A36FA9EED4EAF4DB96B4BF01 /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				AA000001AA000001AA000099 /* Components */,
-				D1A2B3C4E5F6071829000002 /* LiveTripCardView.swift */,
-				D1A2B3C4E5F6071829000003 /* MainWindowView.swift */,
+				DFADF151472CB4ABEF1EF92D /* LiveTripCardView.swift */,
+				CCABFB9F1F5CCAFC13C36B5D /* MainWindowView.swift */,
 				46A066A0E2F7B40F57C5FC36 /* MenuBarView.swift */,
 				70ED6174B2E99DD17E4E500B /* TripCreationView.swift */,
-				D1A2B3C4E5F6071829000004 /* TripDetailView.swift */,
+				2EDC5A6A6A375558D4E90D2F /* TripDetailView.swift */,
+				8CA704D0C55FEB6A31FEFEF7 /* Components */,
 			);
 			path = Views;
-			sourceTree = "<group>";
-		};
-		AA000001AA000001AA000099 /* Components */ = {
-			isa = PBXGroup;
-			children = (
-				AA000001AA000001AA000010 /* AppColors.swift */,
-				AA000001AA000001AA000020 /* AppButton.swift */,
-				AA000001AA000001AA000030 /* SidebarItem.swift */,
-			);
-			path = Components;
 			sourceTree = "<group>";
 		};
 		BAA37E49D35394DF7E1AFFBE /* Models */ = {
@@ -184,6 +179,17 @@
 				A7E4414431597546BBBC0F46 /* TransportMode.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		BD12112321B81875B55FE6F3 /* Licensing */ = {
+			isa = PBXGroup;
+			children = (
+				9D63788DEEBCFACB7645234A /* AuthManager.swift */,
+				11BC45CEB3886B37F637B7E0 /* LicenseActivationView.swift */,
+				65E987D5A4F302D3B9BA9A64 /* LicenseManager.swift */,
+				E0BC66E1F2DA02067FAFD4E2 /* SignInView.swift */,
+			);
+			path = Licensing;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -224,7 +230,6 @@
 				};
 			};
 			buildConfigurationList = 44825AC6DA828E2F305B4E9F /* Build configuration list for PBXProject "All Aboard" */;
-			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -236,6 +241,8 @@
 			packageReferences = (
 				E154B729A4419B8C29FECDF2 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 9A40BE346BA8E99F2BCD608C /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -249,7 +256,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				435BC9802F7CF89A0094252E /* All Aboard.icon in Resources */,
+				B236900A0A2BF6B08C854D36 /* All Aboard.icon in Resources */,
 				1A6FF4B853B7531FDECCCDF9 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -264,24 +271,26 @@
 				6489BD603790B594FC059342 /* APIClient.swift in Sources */,
 				98696DA57BF1DD39CAB7D752 /* APIModels.swift in Sources */,
 				165642C018B707581954B5C7 /* AllAboardApp.swift in Sources */,
-				430FA5F22F7178A000EE9303 /* LicenseActivationView.swift in Sources */,
-				430FA5F32F7178A000EE9303 /* LicenseManager.swift in Sources */,
-				D1A2B3C4E5F60718293A4B5C /* LiveTripCardPanelController.swift in Sources */,
-				D1A2B3C4E5F60718293A4B5D /* LiveTripCardView.swift in Sources */,
-				D1A2B3C4E5F60718293A4B5E /* MainWindowView.swift in Sources */,
-				D1A2B3C4E5F60718293A4B5F /* TripDetailView.swift in Sources */,
+				6C20E957463A4E9A197552AB /* AppButton.swift in Sources */,
+				E3C5C4DA21110BA783C37587 /* AppColors.swift in Sources */,
+				4FF295DDBE99B3979659CD7B /* AuthManager.swift in Sources */,
+				59115EAB10FFE28AAA2B9D60 /* LicenseActivationView.swift in Sources */,
+				DD98204407BEAAB0B2C613BC /* LicenseManager.swift in Sources */,
+				D8A526C25FA7E61C90742427 /* LiveTripCardPanelController.swift in Sources */,
+				7A265735E4B02DB4F83046DC /* LiveTripCardView.swift in Sources */,
+				671A3D529F037F4A18B0715F /* MainWindowView.swift in Sources */,
 				E9548F95E702E4EB1F626A3D /* MenuBarView.swift in Sources */,
 				6B0F4F54273AC5CB0E06C17D /* MenuBarViewModel.swift in Sources */,
 				09EA7924857FDE70EB0BAB98 /* SavedTrip.swift in Sources */,
+				BBC837BDAD1986A8E297CC8E /* SidebarItem.swift in Sources */,
+				46821C70F5C77DC2FCF4273B /* SignInView.swift in Sources */,
 				CF772E19B165CB98128AA638 /* StatusBarController.swift in Sources */,
 				F2E55E4A3B3A658C1E894E83 /* TimeFormatting.swift in Sources */,
 				7DC9AE333487CE0C1D4323D1 /* TransportMode.swift in Sources */,
 				66EA5820A6E1BFABD214450F /* TripCreationView.swift in Sources */,
 				14A7A5B1A768110ED5F5D539 /* TripCreationViewModel.swift in Sources */,
+				5A897EB66AD58500098934BE /* TripDetailView.swift in Sources */,
 				469B06078DF4065107D9DC05 /* TripStore.swift in Sources */,
-				AA000001AA000001AA000001 /* AppColors.swift in Sources */,
-				AA000001AA000001AA000002 /* AppButton.swift in Sources */,
-				AA000001AA000001AA000003 /* SidebarItem.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -333,7 +342,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -395,7 +404,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 15.6;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -410,21 +419,18 @@
 		5B4146E5A63CE4D4EA405F1C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "All Aboard";
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = AllAboard/AllAboard.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 6;
-				DEVELOPMENT_TEAM = T544U3WVL6;
+				CURRENT_PROJECT_VERSION = 4;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = AllAboard/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 15.6;
-				MARKETING_VERSION = 1.3.1;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.allaboard.app;
 				SDKROOT = macosx;
 			};
@@ -433,21 +439,18 @@
 		6AA321CECB708553A0E344D5 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "All Aboard";
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = AllAboard/AllAboard.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 6;
-				DEVELOPMENT_TEAM = T544U3WVL6;
+				CURRENT_PROJECT_VERSION = 4;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = AllAboard/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 15.6;
-				MARKETING_VERSION = 1.3.1;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.allaboard.app;
 				SDKROOT = macosx;
 			};

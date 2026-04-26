@@ -42,6 +42,11 @@ enum AppColors {
             : NSColor(white: 0.945, alpha: 1)
     }
 
+    static let sidebarBackgroundDimmedNS: NSColor = NSColor(name: "sidebarBackgroundDimmedNS") { appearance in
+        let base: CGFloat = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? 0.11 : 0.945
+        return NSColor(white: base * 0.76, alpha: 1)  // matches Color.black.opacity(0.24) overlay
+    }
+
     // MARK: - Text
 
     static let primaryText = Color(nsColor: NSColor(name: "primaryText") { appearance in

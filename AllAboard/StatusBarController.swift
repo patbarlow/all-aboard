@@ -50,6 +50,13 @@ class StatusBarController: NSObject, NSWindowDelegate {
         NotificationCenter.default.addObserver(forName: .menuBarSettingsChanged, object: nil, queue: .main) { [weak self] _ in
             self?.updateStatusBarButtonTitle()
         }
+
+        NotificationCenter.default.addObserver(forName: .modalVisibilityChanged, object: nil, queue: .main) { [weak self] notification in
+            let isShowing = notification.object as? Bool ?? false
+            self?.mainWindow?.backgroundColor = isShowing
+                ? AppColors.sidebarBackgroundDimmedNS
+                : AppColors.sidebarBackgroundNS
+        }
     }
 
     deinit {

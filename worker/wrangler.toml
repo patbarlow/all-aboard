@@ -1,3 +1,17 @@
 name = "trainboard-api"
 main = "src/index.ts"
 compatibility_date = "2024-12-01"
+
+# After running `npx wrangler d1 create trainboard`, paste the returned database_id below.
+[[d1_databases]]
+binding = "DB"
+database_name = "trainboard"
+database_id = "4d14d58b-4343-45d0-a070-b0529268f973"
+
+# Secrets — set via `wrangler secret put <NAME>`, never committed:
+#   SESSION_SECRET          (run `openssl rand -hex 32`)
+#   RESEND_API_KEY          (from resend.com)
+#   RESEND_FROM             (e.g. "All Aboard <noreply@allaboard.app>")
+#   STRIPE_SECRET_KEY
+#   STRIPE_WEBHOOK_SECRET
+#   STRIPE_PRICE_ID         (your monthly/annual subscription price ID)

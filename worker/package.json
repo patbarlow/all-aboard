@@ -3,13 +3,18 @@
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "db:migrate": "wrangler d1 execute trainboard --local --file=./schema.sql",
+    "db:migrate:remote": "wrangler d1 execute trainboard --remote --file=./schema.sql"
   },
   "dependencies": {
-    "pbf": "^4.0.2"
+    "hono": "^4.6.0",
+    "jose": "^5.9.0",
+    "pbf": "^4.0.1"
   },
   "devDependencies": {
-    "wrangler": "^3.0.0",
-    "@cloudflare/workers-types": "^4.0.0"
+    "@cloudflare/workers-types": "^4.0.0",
+    "typescript": "^6.0.3",
+    "wrangler": "^3.0.0"
   }
 }

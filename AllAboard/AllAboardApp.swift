@@ -3,6 +3,7 @@ import Sparkle
 
 extension Notification.Name {
     static let menuBarSettingsChanged = Notification.Name("menuBarSettingsChanged")
+    static let modalVisibilityChanged = Notification.Name("modalVisibilityChanged")
 }
 
 enum AppSettings {
@@ -71,20 +72,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        if LicenseManager.shared.isActivated {
-            Task { await startAppIfLicenseValid() }
+        if AuthManager.shared.isSignedIn {
+            Task { await startAppIfSubscribed() }
         } else {
-            showActivationWindow()
+            showSignInWindow()
         }
     }
 
-    private func startAppIfLicenseValid() async {
-        let valid = await LicenseManager.shared.validate()
+    private func startAppIfSubscribed() async {
+        let user = await AuthManager.shared.refresh()
         await MainActor.run {
-            if valid {
+            if user?.isSubscribed == true {
                 launchApp()
             } else {
-                showActivationWindow()
+                showSignInWindow()
             }
         }
     }
@@ -98,8 +99,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func showActivationWindow() {
-        let view = LicenseActivationView { [weak self] in
+    private func showSignInWindow() {
+        let view = SignInView { [weak self] in
             self?.launchApp()
         }
         let hosting = NSHostingView(rootView: view)
