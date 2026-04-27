@@ -5,8 +5,44 @@ struct AuthUser: Codable {
     let id: String
     let email: String
     let plan: String
+    let trialEnd: Date?
 
     var isSubscribed: Bool { plan == "pro" }
+    var isTrialing: Bool {
+        guard let end = trialEnd else { return false }
+        return end > Date()
+    }
+    var trialDaysRemaining: Int {
+        guard let end = trialEnd else { return 0 }
+        return max(0, Calendar.current.dateComponents([.day], from: Date(), to: end).day ?? 0)
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, email, plan
+        case trialEnd = "trial_end"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        email = try c.decode(String.self, forKey: .email)
+        plan = try c.decode(String.self, forKey: .plan)
+        if let raw = try c.decodeIfPresent(String.self, forKey: .trialEnd) {
+            trialEnd = ISO8601DateFormatter().date(from: raw)
+        } else {
+            trialEnd = nil
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(email, forKey: .email)
+        try c.encode(plan, forKey: .plan)
+        if let end = trialEnd {
+            try c.encode(ISO8601DateFormatter().string(from: end), forKey: .trialEnd)
+        }
+    }
 }
 
 class AuthManager {
@@ -201,7 +237,10 @@ class AuthManager {
         let data = value.data(using: .utf8)!
         let query: [CFString: Any] = [kSecClass: kSecClassGenericPassword, kSecAttrService: keychainService, kSecAttrAccount: account]
         if SecItemUpdate(query as CFDictionary, [kSecValueData: data] as CFDictionary) == errSecItemNotFound {
-            SecItemAdd(query.merging([kSecValueData: data]) { $1 } as CFDictionary, nil)
+            var newItem = query
+            newItem[kSecValueData] = data
+            newItem[kSecAttrAccessible] = kSecAttrAccessibleAfterFirstUnlock
+            SecItemAdd(newItem as CFDictionary, nil)
         }
     }
 

@@ -4,6 +4,7 @@ export interface User {
   plan: "free" | "pro";
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
+  trial_end: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -12,10 +13,11 @@ export interface PublicUser {
   id: string;
   email: string;
   plan: "free" | "pro";
+  trial_end: string | null;
 }
 
 export function publicUser(u: User): PublicUser {
-  return { id: u.id, email: u.email, plan: u.plan };
+  return { id: u.id, email: u.email, plan: u.plan, trial_end: u.trial_end ?? null };
 }
 
 export async function upsertUserByEmail(db: D1Database, email: string): Promise<User> {
@@ -36,7 +38,7 @@ export async function upsertUserByEmail(db: D1Database, email: string): Promise<
     .bind(id, email, now, now)
     .run();
 
-  return { id, email, plan: "free", stripe_customer_id: null, stripe_subscription_id: null, created_at: now, updated_at: now };
+  return { id, email, plan: "free", stripe_customer_id: null, stripe_subscription_id: null, trial_end: null, created_at: now, updated_at: now };
 }
 
 export async function getUser(db: D1Database, id: string): Promise<User | null> {
@@ -55,12 +57,13 @@ export async function updatePlanByStripeCustomer(
   customerId: string,
   plan: "free" | "pro",
   subscriptionId: string | null,
+  trialEnd: string | null = null,
 ): Promise<void> {
   await db
     .prepare(
-      `UPDATE users SET plan = ?, stripe_subscription_id = ?, updated_at = ?
+      `UPDATE users SET plan = ?, stripe_subscription_id = ?, trial_end = ?, updated_at = ?
        WHERE stripe_customer_id = ?`,
     )
-    .bind(plan, subscriptionId, new Date().toISOString(), customerId)
+    .bind(plan, subscriptionId, trialEnd, new Date().toISOString(), customerId)
     .run();
 }

@@ -417,6 +417,7 @@ private struct SettingsSheet: View {
 
                 // Check for updates
                 AppButton("Check for Updates", systemImage: "arrow.clockwise", variant: .subtle, fullWidth: true) {
+                    onDismiss()
                     updaterController.checkForUpdates(nil)
                 }
             }
@@ -517,17 +518,55 @@ private struct SettingsSheet: View {
             }
 
             // Subscription status
-            HStack(spacing: 8) {
-                Image(systemName: "checkmark.seal.fill")
-                    .foregroundStyle(.green)
-                    .font(.system(size: 14))
-                Text("Subscription active")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(AppColors.primaryText)
-            }
+            if let user = AuthManager.shared.cachedUser {
+                if user.isTrialing {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "clock.fill")
+                                .foregroundStyle(.orange)
+                                .font(.system(size: 14))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Free trial")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(AppColors.primaryText)
+                                let days = user.trialDaysRemaining
+                                Text(days == 0 ? "Expires today" : days == 1 ? "1 day remaining" : "\(days) days remaining")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(AppColors.tertiaryText)
+                            }
+                        }
 
-            AppButton("Manage subscription \u{2192}", variant: .secondary, fullWidth: true) {
-                Task { await openPortal() }
+                        AppButton("Upgrade — $4/month \u{2192}", variant: .secondary, fullWidth: true) {
+                            Task { await openCheckout() }
+                        }
+                    }
+                } else if user.isSubscribed {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.seal.fill")
+                            .foregroundStyle(.green)
+                            .font(.system(size: 14))
+                        Text("Subscription active")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(AppColors.primaryText)
+                    }
+
+                    AppButton("Manage subscription \u{2192}", variant: .secondary, fullWidth: true) {
+                        Task { await openPortal() }
+                    }
+                } else {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .foregroundStyle(.orange)
+                            .font(.system(size: 14))
+                        Text("No active subscription")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(AppColors.primaryText)
+                    }
+
+                    AppButton("Subscribe — $4/month \u{2192}", variant: .secondary, fullWidth: true) {
+                        Task { await openCheckout() }
+                    }
+                }
             }
 
             Divider()
@@ -556,6 +595,11 @@ private struct SettingsSheet: View {
 
     private func openPortal() async {
         guard let url = try? await AuthManager.shared.portalURL() else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    private func openCheckout() async {
+        guard let url = try? await AuthManager.shared.checkoutURL() else { return }
         NSWorkspace.shared.open(url)
     }
 

@@ -3,6 +3,40 @@ import type { Env } from "../env";
 import { requireAuth, type AuthVariables } from "../middleware/auth";
 import { setStripeCustomerId, updatePlanByStripeCustomer } from "../db";
 
+/**
+ * Look up an existing Stripe customer by email, or create one if none exists.
+ * This ensures customers who subscribe to multiple products share a single
+ * Stripe customer record and see all subscriptions in the billing portal.
+ */
+async function getOrCreateStripeCustomer(
+  secretKey: string,
+  email: string,
+  userId: string,
+): Promise<string> {
+  // Search for an existing customer with this email across all products.
+  const searchRes = await fetch(
+    `https://api.stripe.com/v1/customers/search?query=${encodeURIComponent(`email:'${email}'`)}&limit=1`,
+    { headers: { Authorization: `Bearer ${secretKey}` } },
+  );
+  if (searchRes.ok) {
+    const result = (await searchRes.json()) as { data: { id: string }[] };
+    if (result.data.length > 0) return result.data[0]!.id;
+  }
+
+  // No existing customer — create one.
+  const createRes = await fetch("https://api.stripe.com/v1/customers", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${secretKey}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({ email, "metadata[user_id]": userId }).toString(),
+  });
+  if (!createRes.ok) throw new Error(`Stripe customer create failed: ${await createRes.text()}`);
+  const customer = (await createRes.json()) as { id: string };
+  return customer.id;
+}
+
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
 /**
@@ -16,17 +50,11 @@ app.post("/trial", requireAuth, async (c) => {
 
   let customerId = user.stripe_customer_id;
   if (!customerId) {
-    const res = await fetch("https://api.stripe.com/v1/customers", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${c.env.STRIPE_SECRET_KEY}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({ email: user.email, "metadata[user_id]": user.id }).toString(),
-    });
-    if (!res.ok) return c.json({ error: "stripe_error", detail: await res.text() }, 502);
-    const customer = (await res.json()) as { id: string };
-    customerId = customer.id;
+    try {
+      customerId = await getOrCreateStripeCustomer(c.env.STRIPE_SECRET_KEY, user.email, user.id);
+    } catch (e) {
+      return c.json({ error: "stripe_error", detail: String(e) }, 502);
+    }
     await setStripeCustomerId(c.env.DB, user.id, customerId);
   }
 
@@ -46,10 +74,11 @@ app.post("/trial", requireAuth, async (c) => {
   });
 
   if (!res.ok) return c.json({ error: "stripe_error", detail: await res.text() }, 502);
-  const sub = (await res.json()) as { id: string; status: string };
+  const sub = (await res.json()) as { id: string; status: string; trial_end: number | null };
+  const trialEnd = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null;
 
   // Set plan immediately so the app doesn't have to wait for the webhook.
-  await updatePlanByStripeCustomer(c.env.DB, customerId, "pro", sub.id);
+  await updatePlanByStripeCustomer(c.env.DB, customerId, "pro", sub.id, trialEnd);
 
   return c.json({ ok: true });
 });
@@ -63,17 +92,11 @@ app.post("/checkout", requireAuth, async (c) => {
 
   let customerId = user.stripe_customer_id;
   if (!customerId) {
-    const res = await fetch("https://api.stripe.com/v1/customers", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${c.env.STRIPE_SECRET_KEY}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({ email: user.email, "metadata[user_id]": user.id }).toString(),
-    });
-    if (!res.ok) return c.json({ error: "stripe_error", detail: await res.text() }, 502);
-    const customer = (await res.json()) as { id: string };
-    customerId = customer.id;
+    try {
+      customerId = await getOrCreateStripeCustomer(c.env.STRIPE_SECRET_KEY, user.email, user.id);
+    } catch (e) {
+      return c.json({ error: "stripe_error", detail: String(e) }, 502);
+    }
     await setStripeCustomerId(c.env.DB, user.id, customerId);
   }
 
@@ -139,14 +162,15 @@ app.post("/webhook", async (c) => {
   switch (event.type) {
     case "customer.subscription.created":
     case "customer.subscription.updated": {
-      const sub = event.data.object as { id: string; customer: string; status: string };
+      const sub = event.data.object as { id: string; customer: string; status: string; trial_end: number | null };
       const plan = sub.status === "active" || sub.status === "trialing" ? "pro" : "free";
-      await updatePlanByStripeCustomer(c.env.DB, sub.customer, plan, sub.id);
+      const trialEnd = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null;
+      await updatePlanByStripeCustomer(c.env.DB, sub.customer, plan, sub.id, trialEnd);
       break;
     }
     case "customer.subscription.deleted": {
       const sub = event.data.object as { customer: string };
-      await updatePlanByStripeCustomer(c.env.DB, sub.customer, "free", null);
+      await updatePlanByStripeCustomer(c.env.DB, sub.customer, "free", null, null);
       break;
     }
   }
