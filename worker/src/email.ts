@@ -14,12 +14,10 @@ export async function hashCode(code: string): Promise<string> {
     .join("");
 }
 
+const SIGN_IN_TEMPLATE_ID = "0907b88a-e1c4-44d8-9be9-f4c8087e4772";
+
 export async function sendCodeEmail(env: Env, to: string, code: string): Promise<void> {
-  const from = env.RESEND_FROM ?? "All Aboard <noreply@allaboard.app>";
-  const subject = "Your All Aboard sign-in code";
-  const text =
-    `Your All Aboard sign-in code is: ${code}\n\n` +
-    `It expires in 10 minutes. If you didn't request this, you can safely ignore this email.`;
+  const from = env.RESEND_FROM ?? "Speaking Computer <noreply@speaking.computer>";
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -27,7 +25,17 @@ export async function sendCodeEmail(env: Env, to: string, code: string): Promise
       Authorization: `Bearer ${env.RESEND_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ from, to, subject, text }),
+    body: JSON.stringify({
+      from,
+      to,
+      template: {
+        id: SIGN_IN_TEMPLATE_ID,
+        variables: {
+          product: "All Aboard",
+          verification_code: code,
+        },
+      },
+    }),
   });
 
   if (!res.ok) {
