@@ -36,7 +36,7 @@ if [ "${CHANNEL}" = "beta" ]; then
     APPCAST_FILE="appcast-beta.xml"
     DOWNLOAD_URL_PREFIX="https://github.com/patbarlow/all-aboard/releases/download/beta/"
 else
-    DMG_BASENAME="All Aboard.dmg"
+    DMG_BASENAME="AllAboard.dmg"
     APPCAST_FILE="appcast.xml"
     DOWNLOAD_URL_PREFIX="https://github.com/patbarlow/all-aboard/releases/latest/download/"
 fi
