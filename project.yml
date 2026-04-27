@@ -29,7 +29,7 @@ targets:
         INFOPLIST_FILE: AllAboard/Info.plist
         CODE_SIGN_ENTITLEMENTS: AllAboard/AllAboard.entitlements
         PRODUCT_BUNDLE_IDENTIFIER: com.allaboard.app
-        MARKETING_VERSION: "1.4.1"
-        CURRENT_PROJECT_VERSION: 8
+        MARKETING_VERSION: "1.4.2"
+        CURRENT_PROJECT_VERSION: 9
         CODE_SIGN_STYLE: Automatic
         ENABLE_HARDENED_RUNTIME: true
