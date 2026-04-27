@@ -3,6 +3,14 @@
     <channel>
         <title>All Aboard</title>
         <item>
+            <title>1.4.4</title>
+            <pubDate>Sun, 26 Apr 2026 21:49:13 +1000</pubDate>
+            <sparkle:version>11</sparkle:version>
+            <sparkle:shortVersionString>1.4.4</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/patbarlow/all-aboard/releases/latest/download/All%20Aboard.dmg" length="4165697" type="application/octet-stream" sparkle:edSignature="t/oDIOWEpnr4oUCym/3814FUN63hsvyScqVIg12nY6dbjs3gQ9T+a73T69gcO7mi78LHhUZeQcqcqfZWWLBmDg=="/>
+        </item>
+        <item>
             <title>1.4.3</title>
             <pubDate>Sun, 26 Apr 2026 21:49:13 +1000</pubDate>
             <sparkle:version>10</sparkle:version>
@@ -17,14 +25,6 @@
             <sparkle:shortVersionString>1.4.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/patbarlow/all-aboard/releases/latest/download/All%20Aboard.dmg" length="2344282" type="application/octet-stream" sparkle:edSignature="A88AvqXAubBlC+ld+D9tK9GVAKPL/5n1VfbS1lpaGcGKzndblDEk5i3N7QHY2U33GnqnJHVKfjq23vt/k+AKAQ=="/>
-        </item>
-        <item>
-            <title>1.4.1</title>
-            <pubDate>Sun, 26 Apr 2026 21:49:13 +1000</pubDate>
-            <sparkle:version>8</sparkle:version>
-            <sparkle:shortVersionString>1.4.1</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/patbarlow/all-aboard/releases/latest/download/All%20Aboard.dmg" length="2282882" type="application/octet-stream" sparkle:edSignature="cnV/xu0cKkAa21bVSwWTG00qWlZakUSiS9eZ9xz/Se0Vh5p0dUzsEP98/mBx0J5VRg5u8B9H/af8sUsAbTopCg=="/>
         </item>
     </channel>
 </rss>
