@@ -3,6 +3,14 @@
     <channel>
         <title>All Aboard</title>
         <item>
+            <title>1.4.1</title>
+            <pubDate>Sun, 26 Apr 2026 21:49:13 +1000</pubDate>
+            <sparkle:version>8</sparkle:version>
+            <sparkle:shortVersionString>1.4.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/patbarlow/all-aboard/releases/latest/download/All%20Aboard.dmg" length="2282882" type="application/octet-stream" sparkle:edSignature="cnV/xu0cKkAa21bVSwWTG00qWlZakUSiS9eZ9xz/Se0Vh5p0dUzsEP98/mBx0J5VRg5u8B9H/af8sUsAbTopCg=="/>
+        </item>
+        <item>
             <title>1.4.0</title>
             <pubDate>Sun, 26 Apr 2026 21:49:13 +1000</pubDate>
             <sparkle:version>7</sparkle:version>
