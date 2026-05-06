@@ -38,8 +38,7 @@ echo "==> Version bumped to ${VERSION} (${BUILD_NUMBER})"
 # Build DMG + notarize + generate appcast
 ./scripts/publish-update.sh
 
-DMG_SRC="${TMPDIR}allaboard-build/All Aboard.dmg"
-DMG_DEST="releases/stable/AllAboard.dmg"
+DMG="releases/stable/AllAboard.dmg"
 
 # Commit, tag, push
 git add "${PBXPROJ}" appcast.xml
@@ -48,10 +47,10 @@ git tag "v${VERSION}"
 git push origin main
 git push origin "v${VERSION}"
 
-# Create GitHub release and upload artifacts
+# Create GitHub release and upload DMG directly from local path
 echo "==> Creating GitHub release..."
 gh release create "v${VERSION}" \
-    "${DMG_DEST}#AllAboard.dmg" \
+    "${DMG}#AllAboard.dmg" \
     --title "v${VERSION}" \
     --notes "All Aboard v${VERSION}"
 
