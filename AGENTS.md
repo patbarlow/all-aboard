@@ -32,18 +32,26 @@ In-app channel selection is controlled by settings in `TripCreationView` and run
 
 ## Build and publish workflow
 ### Stable release
-1. Ensure version/build number is updated.
-2. Run:
-   - `./scripts/publish-update.sh --channel stable`
-3. Commit updated artifacts (at minimum `appcast.xml`; include release assets as needed).
-4. Publish GitHub stable release and upload the DMG asset.
+From the repo root with a clean working tree on `main`:
+```
+./scripts/release.sh 1.5.0
+```
+This bumps the version in `project.pbxproj`, builds + signs + notarizes the DMG,
+generates `appcast.xml` with an EdDSA signature, commits, tags, pushes, and creates
+the GitHub release with the DMG attached. ~3 minutes end to end.
 
 ### Beta release
 1. Merge desired features to the beta/integration branch.
 2. Run:
    - `./scripts/publish-update.sh --channel beta`
-3. Commit updated `appcast-beta.xml` (and release artifacts as needed).
+3. Commit updated `appcast-beta.xml`.
 4. Upload the DMG as `All Aboard Beta.dmg` to GitHub release tag `beta`.
+
+### One-time machine setup (stable releases)
+- Developer ID Application cert for `Pat Barlow (T544U3WVL6)` in Keychain
+- Notarytool credentials: `xcrun notarytool store-credentials "allaboard-notary" --apple-id ... --team-id T544U3WVL6 --password <app-specific-password>`
+- Sparkle EdDSA private key in Keychain (matches `SUPublicEDKey` in Info.plist)
+- `gh` CLI authenticated
 
 ## Task delivery process (Linear → Codex)
 1. Implement task on integration branch.

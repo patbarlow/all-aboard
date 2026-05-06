@@ -42,7 +42,7 @@ DMG_SRC="${TMPDIR}allaboard-build/All Aboard.dmg"
 DMG_DEST="releases/stable/AllAboard.dmg"
 
 # Commit, tag, push
-git add "${PBXPROJ}" appcast.xml "${DMG_DEST}"
+git add "${PBXPROJ}" appcast.xml
 git commit -m "Release v${VERSION} (build ${BUILD_NUMBER})"
 git tag "v${VERSION}"
 git push origin main
