@@ -25,7 +25,7 @@ async function fetchValidSubscriptionIds() {
   while (true) {
     const params = new URLSearchParams({
       "price": STRIPE_PRICE_ID,
-      "status": "all",
+      "status": "active",
       "limit": "100",
     });
     if (startingAfter) params.set("starting_after", startingAfter);
