@@ -162,14 +162,16 @@ app.post("/webhook", async (c) => {
   switch (event.type) {
     case "customer.subscription.created":
     case "customer.subscription.updated": {
-      const sub = event.data.object as { id: string; customer: string; status: string; trial_end: number | null };
+      const sub = event.data.object as { id: string; customer: string; status: string; trial_end: number | null; items: { data: { price: { id: string } }[] } };
+      if (!sub.items.data.some((item) => item.price.id === c.env.STRIPE_PRICE_ID)) break;
       const plan = sub.status === "active" || sub.status === "trialing" ? "pro" : "free";
       const trialEnd = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null;
       await updatePlanByStripeCustomer(c.env.DB, sub.customer, plan, sub.id, trialEnd);
       break;
     }
     case "customer.subscription.deleted": {
-      const sub = event.data.object as { customer: string };
+      const sub = event.data.object as { customer: string; items: { data: { price: { id: string } }[] } };
+      if (!sub.items.data.some((item) => item.price.id === c.env.STRIPE_PRICE_ID)) break;
       await updatePlanByStripeCustomer(c.env.DB, sub.customer, "free", null, null);
       break;
     }
