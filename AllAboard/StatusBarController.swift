@@ -137,16 +137,8 @@ class StatusBarController: NSObject, NSWindowDelegate {
         }
         menuItemActions.append(openAction)
         let openItem = NSMenuItem()
-        openItem.view = makeTextMenuRow(title: "All Aboard", action: openAction)
+        openItem.view = makeTextMenuRow(title: "Open All Aboard", action: openAction)
         menu.addItem(openItem)
-
-        let settingsAction = MenuAction { [weak self] in
-            self?.openSettingsFromMenu()
-        }
-        menuItemActions.append(settingsAction)
-        let settingsItem = NSMenuItem()
-        settingsItem.view = makeTextMenuRow(title: "Settings", action: settingsAction)
-        menu.addItem(settingsItem)
 
         let quitAction = MenuAction {
             NSApp.terminate(nil)
