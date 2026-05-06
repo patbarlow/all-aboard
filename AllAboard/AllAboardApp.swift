@@ -58,7 +58,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     lazy var viewModel = MenuBarViewModel(store: store)
     private var statusBarController: StatusBarController?
     private var activationWindow: NSWindow?
-    private var trialEndTimer: Timer?
 
     private let updateFeedDelegate = UpdateFeedDelegate()
     let updaterController: SPUStandardUpdaterController
@@ -75,7 +74,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NotificationCenter.default.addObserver(self, selector: #selector(appDidBecomeActive), name: NSApplication.didBecomeActiveNotification, object: nil)
         if AuthManager.shared.isSignedIn {
-            Task { await startAppIfSubscribed() }
+            Task { await startApp() }
         } else {
             showSignInWindow()
         }
@@ -83,50 +82,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func appDidBecomeActive() {
         guard statusBarController != nil else { return }
-        Task { await checkSubscriptionStatus() }
+        Task { await refreshSessionOrSignOut() }
     }
 
-    private func checkSubscriptionStatus() async {
+    // Refreshes the session. Only shows the sign-in window if the session is
+    // actually invalid (401) — subscription lapse is handled within the app UI.
+    private func refreshSessionOrSignOut() async {
         let user = await AuthManager.shared.refresh()
-        await MainActor.run {
-            if user?.isSubscribed != true {
-                trialEndTimer?.invalidate()
-                trialEndTimer = nil
+        if user == nil && !AuthManager.shared.isSignedIn {
+            await MainActor.run {
                 statusBarController = nil
                 showSignInWindow()
             }
         }
     }
 
-    private func scheduleTrialEndCheck(for user: AuthUser) {
-        trialEndTimer?.invalidate()
-        trialEndTimer = nil
-        guard let trialEnd = user.trialEnd, trialEnd > Date() else { return }
-        trialEndTimer = Timer.scheduledTimer(withTimeInterval: trialEnd.timeIntervalSinceNow + 1, repeats: false) { [weak self] _ in
-            Task { await self?.checkSubscriptionStatus() }
-        }
+    private func startApp() async {
+        await AuthManager.shared.refresh()
+        await MainActor.run { launchApp() }
     }
 
-    private func startAppIfSubscribed() async {
-        let user = await AuthManager.shared.refresh()
-        await MainActor.run {
-            if user?.isSubscribed == true {
-                launchApp(user: user)
-            } else {
-                showSignInWindow()
-            }
-        }
-    }
-
-    func launchApp(user: AuthUser? = nil) {
+    func launchApp() {
         activationWindow?.close()
         activationWindow = nil
         if statusBarController == nil {
             statusBarController = StatusBarController(store: store, viewModel: viewModel, updaterController: updaterController)
             viewModel.startAutoRefreshIfNeeded()
         }
-        let resolvedUser = user ?? AuthManager.shared.cachedUser
-        if let resolvedUser { scheduleTrialEndCheck(for: resolvedUser) }
     }
 
     private func showSignInWindow() {
