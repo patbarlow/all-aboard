@@ -25,7 +25,7 @@ async function fetchValidSubscriptionIds() {
   while (true) {
     const params = new URLSearchParams({
       "price": STRIPE_PRICE_ID,
-      "status": "all",
+      "status": "active",
       "limit": "100",
     });
     if (startingAfter) params.set("starting_after", startingAfter);
@@ -57,7 +57,7 @@ const fixSql = validIds.size > 0
   ? `UPDATE users SET plan = 'free', stripe_subscription_id = NULL, trial_end = NULL WHERE plan = 'pro' AND (stripe_subscription_id IS NULL OR stripe_subscription_id NOT IN (${placeholders}));`
   : `UPDATE users SET plan = 'free', stripe_subscription_id = NULL, trial_end = NULL WHERE plan = 'pro';`;
 
-const args = [...validIds].join(" ");
+const args = [...validIds].map((id) => `'${id}'`).join(", ");
 
 console.log("\n--- Step 1: Find affected users ---");
 console.log("Run this to see who will be changed:\n");
