@@ -28,10 +28,21 @@ struct AuthUser: Codable {
         email = try c.decode(String.self, forKey: .email)
         plan = try c.decode(String.self, forKey: .plan)
         if let raw = try c.decodeIfPresent(String.self, forKey: .trialEnd) {
-            trialEnd = ISO8601DateFormatter().date(from: raw)
+            trialEnd = AuthUser.parseISO8601(raw)
         } else {
             trialEnd = nil
         }
+    }
+
+    // Worker emits timestamps via `new Date(...).toISOString()`, which always
+    // includes fractional seconds (e.g. "2026-05-13T05:08:46.000Z"). Default
+    // ISO8601DateFormatter rejects those, so try with fractional seconds first
+    // and fall back to plain.
+    private static func parseISO8601(_ raw: String) -> Date? {
+        let withFractional = ISO8601DateFormatter()
+        withFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let d = withFractional.date(from: raw) { return d }
+        return ISO8601DateFormatter().date(from: raw)
     }
 
     func encode(to encoder: Encoder) throws {
