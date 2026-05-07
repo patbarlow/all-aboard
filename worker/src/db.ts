@@ -45,6 +45,10 @@ export async function getUser(db: D1Database, id: string): Promise<User | null> 
   return db.prepare("SELECT * FROM users WHERE id = ?").bind(id).first<User>();
 }
 
+export async function getUserByStripeCustomer(db: D1Database, customerId: string): Promise<User | null> {
+  return db.prepare("SELECT * FROM users WHERE stripe_customer_id = ?").bind(customerId).first<User>();
+}
+
 export async function setStripeCustomerId(db: D1Database, userId: string, customerId: string): Promise<void> {
   await db
     .prepare("UPDATE users SET stripe_customer_id = ?, updated_at = ? WHERE id = ?")
