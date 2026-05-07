@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS users (
     plan TEXT NOT NULL DEFAULT 'free',
     stripe_customer_id TEXT,
     stripe_subscription_id TEXT,
+    trial_end TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
