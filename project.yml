@@ -55,6 +55,8 @@ targets:
       path: AllAboardiOS/Info.plist
       properties:
         LSRequiresIPhoneOS: true
+        NSSupportsLiveActivities: true
+        NSSupportsLiveActivitiesFullScreen: true
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         UILaunchScreen:

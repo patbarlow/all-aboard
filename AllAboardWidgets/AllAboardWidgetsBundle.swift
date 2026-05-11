@@ -5,5 +5,6 @@ import SwiftUI
 struct AllAboardWidgetsBundle: WidgetBundle {
     var body: some Widget {
         AllAboardWidget()
+        DepartureLiveActivity()
     }
 }
