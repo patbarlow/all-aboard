@@ -25,6 +25,10 @@ private func shortName(_ name: String) -> String {
     name.replacingOccurrences(of: " Station", with: "")
 }
 
+private func shortPlatform(_ name: String) -> String {
+    "PF \(name.replacingOccurrences(of: "Platform ", with: "").trimmingCharacters(in: .whitespaces))"
+}
+
 private func depTimeStr(_ journey: Journey) -> String {
     let leg = journey.legs.first
     return TimeFormatting.formatTime(leg?.origin.departureTimeEstimated ?? leg?.origin.departureTimePlanned)
@@ -225,13 +229,27 @@ struct CircularWidgetView: View {
     var body: some View {
         if let next = entry.upcoming.first {
             let mins = minutesUntil(next, from: entry.date)
-            Text(mins)
-                .font(.system(size: 13, weight: .bold, design: .rounded))
-                .minimumScaleFactor(0.5)
-                .multilineTextAlignment(.center)
-                .widgetAccentable()
+            let plt = platformName(next).map { shortPlatform($0) }
+            VStack(spacing: 0) {
+                Text("Next")
+                    .font(.system(size: 9, weight: .medium))
+                Text(mins)
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .minimumScaleFactor(0.4)
+                    .lineLimit(1)
+                if let plt {
+                    Text(plt)
+                        .font(.system(size: 9, weight: .medium))
+                        .minimumScaleFactor(0.7)
+                }
+            }
+            .widgetAccentable()
         } else {
-            Image(systemName: "tram.fill").widgetAccentable()
+            VStack(spacing: 2) {
+                Image(systemName: "tram.fill")
+                Text("—").font(.system(size: 12, weight: .bold))
+            }
+            .widgetAccentable()
         }
     }
 }
@@ -276,11 +294,9 @@ struct InlineWidgetView: View {
     var body: some View {
         if let next = entry.upcoming.first {
             let mins = minutesUntil(next, from: entry.date)
-            Label {
-                Text("\(shortName(entry.displayOriginName)) → \(shortName(entry.displayDestinationName)) · \(mins)")
-            } icon: {
-                Image(systemName: "tram.fill")
-            }
+            let plt = platformName(next).map { shortPlatform($0) }
+            let label = [mins, plt].compactMap { $0 }.joined(separator: " · ")
+            Label(label, systemImage: "tram.fill")
         } else {
             Label("No trains", systemImage: "tram.fill")
         }

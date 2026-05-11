@@ -7,14 +7,12 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if let trip = savedTrip {
-                    configuredView(trip: trip)
-                } else {
-                    emptyStateView
-                }
+            if let trip = savedTrip {
+                TimetableView(trip: trip, onEditTrip: { showingSetup = true })
+            } else {
+                emptyStateView
+                    .navigationTitle("All Aboard")
             }
-            .navigationTitle("All Aboard")
         }
         .sheet(isPresented: $showingSetup, onDismiss: {
             savedTrip = SharedDefaults.loadTrip()
@@ -24,30 +22,6 @@ struct ContentView: View {
         }
         .onAppear {
             if savedTrip == nil { showingSetup = true }
-        }
-    }
-
-    private func configuredView(trip: SavedTrip) -> some View {
-        List {
-            Section {
-                Label(trip.origin.name, systemImage: "circle.fill")
-                    .foregroundStyle(.primary, .green)
-                Label(trip.destination.name, systemImage: "mappin.circle.fill")
-                    .foregroundStyle(.primary, .red)
-            } header: {
-                Text("Your trip")
-            } footer: {
-                Text("Widgets show A→B in the morning and B→A from noon, flipping again at midnight.")
-            }
-
-            Section {
-                Button("Change stops") { showingSetup = true }
-            }
-        }
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Edit") { showingSetup = true }
-            }
         }
     }
 

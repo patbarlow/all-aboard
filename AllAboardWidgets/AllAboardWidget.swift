@@ -3,10 +3,6 @@ import SwiftUI
 
 // MARK: - Direction helpers
 
-func isAfternoonDirection(at date: Date = .now) -> Bool {
-    Calendar.current.component(.hour, from: date) >= 12
-}
-
 private func nextFlipTime(after date: Date) -> Date {
     let cal = Calendar.current
     let hour = cal.component(.hour, from: date)
@@ -21,11 +17,6 @@ private func nextFlipTime(after date: Date) -> Date {
         components.second = 0
     }
     return cal.nextDate(after: date, matching: components, matchingPolicy: .strict) ?? date.addingTimeInterval(3600)
-}
-
-func departureDate(of journey: Journey) -> Date? {
-    let leg = journey.legs.first
-    return TimeFormatting.parseTime(leg?.origin.departureTimeEstimated ?? leg?.origin.departureTimePlanned)
 }
 
 // MARK: - Timeline Entry
