@@ -96,6 +96,7 @@ targets:
     info:
       path: AllAboardWidgets/Info.plist
       properties:
+        CFBundleDisplayName: All Aboard Widgets
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
