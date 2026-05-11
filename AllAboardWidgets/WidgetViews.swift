@@ -108,13 +108,13 @@ private struct DepartureRow: View {
         HStack(alignment: .top, spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(arr.isEmpty ? dep : "\(dep) → \(arr)")
-                    .font(.subheadline.weight(.semibold).monospacedDigit())
+                    .font(.callout.weight(.semibold).monospacedDigit())
                 subtitleText(dur: dur, plt: plt)
             }
             Spacer(minLength: 4)
             VStack(alignment: .trailing, spacing: 2) {
                 Text(mins)
-                    .font(.subheadline.weight(.bold).monospacedDigit())
+                    .font(.callout.weight(.bold).monospacedDigit())
                 Text(status.text)
                     .font(.caption)
                     .foregroundStyle(status.delayed ? Color.orange : Color.secondary)
@@ -150,14 +150,17 @@ struct SmallWidgetView: View {
             if let j = next {
                 let mins = minutesUntil(j, from: entry.date)
                 let dep = depTimeStr(j)
+                let arr = arrTimeStr(j)
 
                 Text(mins)
                     .font(.system(size: 36, weight: .bold, design: .rounded))
                     .minimumScaleFactor(0.4)
                     .lineLimit(1)
-                Text(dep)
-                    .font(.subheadline.monospacedDigit())
+                Text(arr.isEmpty ? dep : "\(dep) → \(arr)")
+                    .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             } else {
                 Text("No trains")
                     .font(.headline)
