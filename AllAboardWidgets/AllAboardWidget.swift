@@ -129,7 +129,7 @@ struct AllAboardWidget: Widget {
         .configurationDisplayName("All Aboard")
         .description("Next departures for your saved trip.")
         .supportedFamilies([
-            .systemSmall, .systemMedium, .systemLarge,
+            .systemSmall, .systemLarge,
             .accessoryCircular, .accessoryRectangular, .accessoryInline
         ])
     }

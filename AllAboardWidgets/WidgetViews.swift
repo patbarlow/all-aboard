@@ -10,7 +10,6 @@ struct AllAboardWidgetEntryView: View {
     var body: some View {
         switch family {
         case .systemSmall:          SmallWidgetView(entry: entry)
-        case .systemMedium:         MediumWidgetView(entry: entry)
         case .systemLarge:          LargeWidgetView(entry: entry)
         case .accessoryCircular:    CircularWidgetView(entry: entry)
         case .accessoryRectangular: RectangularWidgetView(entry: entry)
@@ -183,37 +182,6 @@ struct SmallWidgetView: View {
             .lineLimit(1)
         }
         .padding(12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-    }
-}
-
-// MARK: - Medium
-
-struct MediumWidgetView: View {
-    let entry: DepartureEntry
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            RouteHeader(origin: entry.displayOriginName, destination: entry.displayDestinationName)
-            Divider().padding(.vertical, 6)
-
-            let rows = Array(entry.upcoming.prefix(3))
-            if rows.isEmpty {
-                Text("No upcoming departures")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                Spacer()
-            } else {
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(Array(rows.enumerated()), id: \.offset) { idx, journey in
-                        DepartureRow(journey: journey, entryDate: entry.date)
-                        if idx < rows.count - 1 { Divider() }
-                    }
-                }
-                Spacer(minLength: 0)
-            }
-        }
-        .padding(14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     }
 }
