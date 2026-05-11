@@ -65,27 +65,29 @@ struct AllAboardProvider: TimelineProvider {
 
             let journeys = await fetchJourneys(trip: trip, isAfternoon: isAfternoon, from: now)
 
-            var entries: [DepartureEntry] = []
-
-            // Initial entry showing all fetched journeys
-            entries.append(DepartureEntry(date: now, trip: trip, journeys: journeys, isAfternoonDirection: isAfternoon))
-
-            // Entry per departure so the widget ticks forward as each train departs
-            for journey in journeys {
-                guard let dep = departureDate(of: journey), dep > now else { continue }
-                entries.append(DepartureEntry(date: dep, trip: trip, journeys: journeys, isAfternoonDirection: isAfternoon))
-            }
-
-            // Handle direction flip at noon/midnight if within next 2 hours
+            // One entry per minute for the next 2 hours.
+            // Each entry's `upcoming` filter removes trains that have departed by
+            // that minute, so the widget stays accurate to within ~1 minute.
             let flipTime = nextFlipTime(after: now)
-            if flipTime < now.addingTimeInterval(7200) {
-                let flippedIsAfternoon = !isAfternoon
-                let flippedJourneys = await fetchJourneys(trip: trip, isAfternoon: flippedIsAfternoon, from: flipTime)
-                entries.append(DepartureEntry(date: flipTime, trip: trip, journeys: flippedJourneys, isAfternoonDirection: flippedIsAfternoon))
+            let flippedIsAfternoon = !isAfternoon
+            let flippedJourneys: [Journey] = flipTime < now.addingTimeInterval(7200)
+                ? await fetchJourneys(trip: trip, isAfternoon: flippedIsAfternoon, from: flipTime)
+                : []
+
+            var entries: [DepartureEntry] = []
+            for minute in 0..<120 {
+                let entryDate = now.addingTimeInterval(Double(minute) * 60)
+                let afterFlip = entryDate >= flipTime && !flippedJourneys.isEmpty
+                entries.append(DepartureEntry(
+                    date: entryDate,
+                    trip: trip,
+                    journeys: afterFlip ? flippedJourneys : journeys,
+                    isAfternoonDirection: afterFlip ? flippedIsAfternoon : isAfternoon
+                ))
             }
 
             let policy = TimelineReloadPolicy.after(Date(timeIntervalSinceNow: 1800))
-            completion(Timeline(entries: entries.sorted { $0.date < $1.date }, policy: policy))
+            completion(Timeline(entries: entries, policy: policy))
         }
     }
 
