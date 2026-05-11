@@ -3,6 +3,7 @@ options:
   bundleIdPrefix: com.allaboard
   deploymentTarget:
     macOS: "14.0"
+    iOS: "17.0"
   xcodeVersion: "16.0"
   generateEmptyDirectories: true
 
@@ -33,3 +34,77 @@ targets:
         CURRENT_PROJECT_VERSION: 12
         CODE_SIGN_STYLE: Automatic
         ENABLE_HARDENED_RUNTIME: true
+
+  AllAboardiOS:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: AllAboardiOS
+      - path: AllAboardiOSShared
+      - path: AllAboard/Models/SavedTrip.swift
+      - path: AllAboard/Models/APIModels.swift
+      - path: AllAboard/Models/TransportMode.swift
+      - path: AllAboard/Networking/APIClient.swift
+      - path: AllAboard/Utilities/TimeFormatting.swift
+    dependencies:
+      - target: AllAboardWidgets
+        embed: true
+        codeSign: true
+    info:
+      path: AllAboardiOS/Info.plist
+      properties:
+        LSRequiresIPhoneOS: true
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UILaunchScreen:
+          UIColorName: systemBackground
+        UIRequiredDeviceCapabilities:
+          - arm64
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+        "UISupportedInterfaceOrientations~ipad":
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.yap.YapIOS
+        PRODUCT_NAME: All Aboard
+        DEVELOPMENT_TEAM: T544U3WVL6
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: AllAboardiOS/AllAboardiOS.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: 2
+
+  AllAboardWidgets:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: AllAboardWidgets
+      - path: AllAboardiOSShared
+      - path: AllAboard/Models/SavedTrip.swift
+      - path: AllAboard/Models/APIModels.swift
+      - path: AllAboard/Models/TransportMode.swift
+      - path: AllAboard/Networking/APIClient.swift
+      - path: AllAboard/Utilities/TimeFormatting.swift
+    info:
+      path: AllAboardWidgets/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.yap.YapIOS.Widgets
+        PRODUCT_NAME: AllAboardWidgets
+        DEVELOPMENT_TEAM: T544U3WVL6
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: AllAboardWidgets/AllAboardWidgets.entitlements
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: 2
