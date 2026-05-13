@@ -384,6 +384,14 @@ private enum SettingsTab: Hashable {
     case menuBar
     case shortcuts
     case account
+    case feedback
+}
+
+private enum FeedbackState: Equatable {
+    case idle
+    case submitting
+    case success
+    case error(String)
 }
 
 private struct SettingsSheet: View {
@@ -391,6 +399,8 @@ private struct SettingsSheet: View {
     var onDismiss: () -> Void
     @State private var selectedTab: SettingsTab = .menuBar
     @State private var showSignOutAlert = false
+    @State private var feedbackMessage = ""
+    @State private var feedbackState: FeedbackState = .idle
 
     var body: some View {
         HStack(spacing: 0) {
@@ -412,6 +422,11 @@ private struct SettingsSheet: View {
                 AppButton("Account", systemImage: "person.circle", variant: .subtle, isActive: selectedTab == .account, fullWidth: true) {
                     selectedTab = .account
                 }
+                AppButton("Feedback", systemImage: "bubble.left", variant: .subtle, isActive: selectedTab == .feedback, fullWidth: true) {
+                    selectedTab = .feedback
+                    feedbackMessage = ""
+                    feedbackState = .idle
+                }
 
                 Spacer()
 
@@ -427,7 +442,7 @@ private struct SettingsSheet: View {
             // Settings content
             VStack(alignment: .leading, spacing: 0) {
                 // Header
-                Text(selectedTab == .menuBar ? "Menu Bar" : selectedTab == .shortcuts ? "Keyboard Shortcuts" : "Account")
+                Text(selectedTab == .menuBar ? "Menu Bar" : selectedTab == .shortcuts ? "Keyboard Shortcuts" : selectedTab == .account ? "Account" : "Feedback")
                     .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(AppColors.primaryText)
                     .padding(.horizontal, 20)
@@ -447,6 +462,8 @@ private struct SettingsSheet: View {
                             shortcutsSettings
                         case .account:
                             accountSettings
+                        case .feedback:
+                            feedbackContent
                         }
                     }
                     .padding(.horizontal, 20)
@@ -590,6 +607,104 @@ private struct SettingsSheet: View {
             }
         } message: {
             Text("You will need to sign back in to use All Aboard.")
+        }
+    }
+
+    // MARK: - Feedback Settings
+
+    private var feedbackContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            switch feedbackState {
+            case .success:
+                VStack(spacing: 12) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 32))
+                        .foregroundStyle(.green)
+                    Text("Thanks for the feedback!")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(AppColors.primaryText)
+                    Text("We appreciate you taking the time to share your thoughts.")
+                        .font(.system(size: 12))
+                        .foregroundStyle(AppColors.tertiaryText)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, 8)
+
+            default:
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("What's on your mind?")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(AppColors.primaryText)
+
+                    TextEditor(text: $feedbackMessage)
+                        .font(.system(size: 13))
+                        .foregroundStyle(AppColors.primaryText)
+                        .scrollContentBackground(.hidden)
+                        .background(AppColors.cardBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: UIRadius.innerTile))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: UIRadius.innerTile)
+                                .stroke(AppColors.contentBorder, lineWidth: 1)
+                        )
+                        .frame(height: 100)
+                        .disabled(feedbackState == .submitting)
+                }
+
+                if case .error(let msg) = feedbackState {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .foregroundStyle(.red)
+                            .font(.system(size: 13))
+                        Text(msg)
+                            .font(.system(size: 12))
+                            .foregroundStyle(.red)
+                    }
+                }
+
+                HStack {
+                    Spacer()
+                    if feedbackState == .submitting {
+                        ProgressView()
+                            .controlSize(.small)
+                            .padding(.trailing, 4)
+                    }
+                    AppButton("Send Feedback", variant: .primary) {
+                        Task { await submitFeedback() }
+                    }
+                    .disabled(feedbackMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || feedbackState == .submitting)
+                }
+            }
+        }
+    }
+
+    private func submitFeedback() async {
+        let trimmed = feedbackMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        feedbackState = .submitting
+
+        var request = URLRequest(url: URL(string: "https://speaking.computer/feedback")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: String] = [
+            "message": trimmed,
+            "email": AuthManager.shared.cachedUser?.email ?? "",
+            "app": "All Aboard"
+        ]
+
+        do {
+            request.httpBody = try JSONEncoder().encode(body)
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if let http = response as? HTTPURLResponse, http.statusCode >= 200 && http.statusCode < 300 {
+                feedbackState = .success
+            } else {
+                feedbackState = .error("Something went wrong. Please try again.")
+            }
+        } catch {
+            feedbackState = .error("Couldn't send feedback. Check your connection.")
         }
     }
 
