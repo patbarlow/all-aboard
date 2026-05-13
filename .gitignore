@@ -3,6 +3,7 @@ build/
 *.xcuserdata
 DerivedData/
 xcuserdata/
+xcshareddata/
 *.xcworkspace
 
 # macOS
