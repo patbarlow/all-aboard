@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { Env } from "../env";
 import { requireAuth, type AuthVariables } from "../middleware/auth";
-import { setStripeCustomerId, updatePlanByStripeCustomer } from "../db";
+import { getUserByStripeCustomer, setStripeCustomerId, updatePlanByStripeCustomer } from "../db";
 
 /**
  * Look up an existing Stripe customer by email, or create one if none exists.
@@ -164,14 +164,30 @@ app.post("/webhook", async (c) => {
     case "customer.subscription.updated": {
       const sub = event.data.object as { id: string; customer: string; status: string; trial_end: number | null; items: { data: { price: { id: string } }[] } };
       if (!sub.items.data.some((item) => item.price.id === c.env.STRIPE_PRICE_ID)) break;
-      const plan = sub.status === "active" || sub.status === "trialing" ? "pro" : "free";
+
+      const user = await getUserByStripeCustomer(c.env.DB, sub.customer);
+      if (!user) break;
+
+      const isActive = sub.status === "active" || sub.status === "trialing";
+      // Customers can have multiple All Aboard subs (e.g. an old canceled one and
+      // a fresh trial). Only mutate state when this event is about the sub we're
+      // already tracking, OR when it's a new active/trialing sub that should
+      // become the tracked one. Otherwise stale events on canceled subs would
+      // clobber an active trial.
+      if (!isActive && user.stripe_subscription_id !== sub.id) break;
+
+      const plan = isActive ? "pro" : "free";
       const trialEnd = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null;
       await updatePlanByStripeCustomer(c.env.DB, sub.customer, plan, sub.id, trialEnd);
       break;
     }
     case "customer.subscription.deleted": {
-      const sub = event.data.object as { customer: string; items: { data: { price: { id: string } }[] } };
-      if (!sub.items.data.some((item) => item.price.id === c.env.STRIPE_PRICE_ID)) break;
+      const sub = event.data.object as { id: string; customer: string };
+      const user = await getUserByStripeCustomer(c.env.DB, sub.customer);
+      if (!user) break;
+      // Only clear if this is the sub we're tracking. Deletion events for older
+      // canceled subs must not wipe an active trial on the same customer.
+      if (user.stripe_subscription_id !== sub.id) break;
       await updatePlanByStripeCustomer(c.env.DB, sub.customer, "free", null, null);
       break;
     }
