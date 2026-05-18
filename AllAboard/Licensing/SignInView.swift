@@ -61,7 +61,7 @@ struct SignInView: View {
         switch step {
         case .email: return "Enter your email to sign in or create an account."
         case .otp: return "Check \(email) for a 6-digit code."
-        case .subscribe: return "A subscription is required to use All Aboard."
+        case .subscribe: return "A one-time purchase is required to use All Aboard."
         }
     }
 
@@ -138,12 +138,12 @@ struct SignInView: View {
 
     private var subscribeForm: some View {
         VStack(spacing: 12) {
-            Button(action: { Task { await startTrial() } }) {
+            Button(action: { Task { await openCheckout() } }) {
                 Group {
                     if isWorking {
-                        HStack(spacing: 6) { ProgressView().controlSize(.small); Text("Starting trial…") }
+                        HStack(spacing: 6) { ProgressView().controlSize(.small); Text("Opening…") }
                     } else {
-                        Text("Start 7-day free trial")
+                        Text("Buy All Aboard — $5 →")
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -152,7 +152,7 @@ struct SignInView: View {
             .controlSize(.large)
             .disabled(isWorking)
 
-            Button("Already subscribed? Check status") { Task { await checkSubscription() } }
+            Button("Already purchased? Check status") { Task { await checkPurchase() } }
                 .buttonStyle(.borderless)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -191,7 +191,7 @@ struct SignInView: View {
         defer { isWorking = false }
         do {
             let result = try await AuthManager.shared.verify(email: email, code: code)
-            if result.user.isSubscribed {
+            if result.user.isPurchased {
                 onSignedIn()
             } else {
                 step = .subscribe
@@ -201,26 +201,26 @@ struct SignInView: View {
         }
     }
 
-    private func startTrial() async {
+    private func openCheckout() async {
         isWorking = true
         errorMessage = ""
         defer { isWorking = false }
         do {
-            try await AuthManager.shared.startTrial()
-            onSignedIn()
+            let url = try await AuthManager.shared.checkoutURL()
+            NSWorkspace.shared.open(url)
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
-    private func checkSubscription() async {
+    private func checkPurchase() async {
         isWorking = true
         errorMessage = ""
         defer { isWorking = false }
-        if let user = await AuthManager.shared.refresh(), user.isSubscribed {
+        if let user = await AuthManager.shared.refresh(), user.isPurchased {
             onSignedIn()
         } else {
-            errorMessage = "No active subscription found. Complete your purchase and try again."
+            errorMessage = "No active license found. Complete your purchase and try again."
         }
     }
 }

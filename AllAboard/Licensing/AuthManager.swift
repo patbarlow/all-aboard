@@ -5,55 +5,8 @@ struct AuthUser: Codable {
     let id: String
     let email: String
     let plan: String
-    let trialEnd: Date?
 
-    var isSubscribed: Bool { plan == "pro" }
-    var isTrialing: Bool {
-        guard let end = trialEnd else { return false }
-        return end > Date()
-    }
-    var trialDaysRemaining: Int {
-        guard let end = trialEnd else { return 0 }
-        return max(0, Calendar.current.dateComponents([.day], from: Date(), to: end).day ?? 0)
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case id, email, plan
-        case trialEnd = "trial_end"
-    }
-
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = try c.decode(String.self, forKey: .id)
-        email = try c.decode(String.self, forKey: .email)
-        plan = try c.decode(String.self, forKey: .plan)
-        if let raw = try c.decodeIfPresent(String.self, forKey: .trialEnd) {
-            trialEnd = AuthUser.parseISO8601(raw)
-        } else {
-            trialEnd = nil
-        }
-    }
-
-    // Worker emits timestamps via `new Date(...).toISOString()`, which always
-    // includes fractional seconds (e.g. "2026-05-13T05:08:46.000Z"). Default
-    // ISO8601DateFormatter rejects those, so try with fractional seconds first
-    // and fall back to plain.
-    private static func parseISO8601(_ raw: String) -> Date? {
-        let withFractional = ISO8601DateFormatter()
-        withFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let d = withFractional.date(from: raw) { return d }
-        return ISO8601DateFormatter().date(from: raw)
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var c = encoder.container(keyedBy: CodingKeys.self)
-        try c.encode(id, forKey: .id)
-        try c.encode(email, forKey: .email)
-        try c.encode(plan, forKey: .plan)
-        if let end = trialEnd {
-            try c.encode(ISO8601DateFormatter().string(from: end), forKey: .trialEnd)
-        }
-    }
+    var isPurchased: Bool { plan == "pro" }
 }
 
 class AuthManager {
@@ -149,22 +102,7 @@ class AuthManager {
         return user
     }
 
-    // MARK: - Trial
-
-    func startTrial() async throws {
-        guard let token = sessionToken else { throw AuthError.notSignedIn }
-        var request = URLRequest(url: URL(string: "\(Self.baseURL)/v1/stripe/trial")!)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            let detail = (try? JSONDecoder().decode([String: String].self, from: data))?["error"] ?? "Could not start trial"
-            throw AuthError.server(detail)
-        }
-    }
-
-    // MARK: - Checkout & portal
+    // MARK: - Checkout
 
     func checkoutURL() async throws -> URL {
         guard let token = sessionToken else { throw AuthError.notSignedIn }
@@ -179,22 +117,6 @@ class AuthManager {
         struct CheckoutResponse: Decodable { let url: String }
         let body = try JSONDecoder().decode(CheckoutResponse.self, from: data)
         guard let url = URL(string: body.url) else { throw AuthError.server("Invalid checkout URL") }
-        return url
-    }
-
-    func portalURL() async throws -> URL {
-        guard let token = sessionToken else { throw AuthError.notSignedIn }
-        var request = URLRequest(url: URL(string: "\(Self.baseURL)/v1/stripe/portal")!)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            throw AuthError.server("Could not open billing portal. Please try again.")
-        }
-        struct PortalResponse: Decodable { let url: String }
-        let body = try JSONDecoder().decode(PortalResponse.self, from: data)
-        guard let url = URL(string: body.url) else { throw AuthError.server("Invalid portal URL") }
         return url
     }
 
