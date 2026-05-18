@@ -118,14 +118,22 @@ actor APIClient {
     // MARK: - Private
 
     private func fetch<T: Decodable>(url: URL) async throws -> T {
-        let (data, response) = try await session.data(from: url)
+        var request = URLRequest(url: url)
+        if let token = AuthManager.shared.sessionToken {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        let (data, response) = try await session.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
 
-        guard httpResponse.statusCode == 200 else {
-            throw APIError.httpError(httpResponse.statusCode)
+        switch httpResponse.statusCode {
+        case 200: break
+        case 401: throw APIError.notSignedIn
+        case 403: throw APIError.licenseRequired
+        default: throw APIError.httpError(httpResponse.statusCode)
         }
 
         return try JSONDecoder().decode(T.self, from: data)
@@ -134,12 +142,16 @@ actor APIClient {
 
 enum APIError: LocalizedError {
     case invalidResponse
+    case notSignedIn
+    case licenseRequired
     case httpError(Int)
 
     var errorDescription: String? {
         switch self {
-        case .invalidResponse: "Invalid response from server"
-        case .httpError(let code): "Server error (\(code))"
+        case .invalidResponse: return "Invalid response from server"
+        case .notSignedIn: return "Please sign in to continue."
+        case .licenseRequired: return "A license is required. Tap Buy in Settings."
+        case .httpError(let code): return "Server error (\(code))"
         }
     }
 }

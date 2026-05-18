@@ -4,6 +4,8 @@ import type { Env } from "./env";
 import authRoutes from "./routes/auth";
 import meRoutes from "./routes/me";
 import stripeRoutes from "./routes/stripe";
+import { verifySession } from "./session";
+import { getUser } from "./db";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -25,6 +27,21 @@ const VEHICLE_POS_PATHS: Record<string, string> = {
 };
 
 app.all("*", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) return c.json({ error: "missing_bearer" }, 401);
+  const token = authHeader.slice("Bearer ".length);
+
+  let userId: string;
+  try {
+    userId = await verifySession(token, c.env.SESSION_SECRET);
+  } catch {
+    return c.json({ error: "invalid_session" }, 401);
+  }
+
+  const user = await getUser(c.env.DB, userId);
+  if (!user) return c.json({ error: "user_not_found" }, 401);
+  if (user.plan !== "pro") return c.json({ error: "license_required" }, 403);
+
   const url = new URL(c.req.url);
   const path = url.pathname;
 
