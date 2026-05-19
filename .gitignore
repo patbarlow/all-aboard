@@ -15,4 +15,7 @@ worker/.wrangler/
 # Build artifacts
 *.dmg
 releases/
+# Claude Code
+CLAUDE.md
+AGENTS.md
 .claude/
