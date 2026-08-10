@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		072989749F1A4B46A03487AF /* TimetableViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAC849C267BBD90D918E7D9 /* TimetableViewModel.swift */; };
 		09EA7924857FDE70EB0BAB98 /* SavedTrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = D021E21156BE55E9A05F1253 /* SavedTrip.swift */; };
+		0AF7C4EA8EACE3D53EF67C36 /* DisruptionStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC879F5272587329FD7D6297 /* DisruptionStatus.swift */; };
 		1292344FD05254F9ED242E5B /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 206819DA78CC06F56D72F161 /* Sparkle */; };
 		14A7A5B1A768110ED5F5D539 /* TripCreationViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FECBA7D98D5022744CF5452 /* TripCreationViewModel.swift */; };
 		165642C018B707581954B5C7 /* AllAboardApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBB92BD04760D201F400B8E5 /* AllAboardApp.swift */; };
@@ -28,6 +29,7 @@
 		5A897EB66AD58500098934BE /* TripDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EDC5A6A6A375558D4E90D2F /* TripDetailView.swift */; };
 		5BFFBCEC6485F53C8DBE8B80 /* DepartureAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B69A2144296855F3E74B233D /* DepartureAttributes.swift */; };
 		611EEBD1D860CD001AFFEACE /* TimeFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4DE332C959DE95D4D652496 /* TimeFormatting.swift */; };
+		63D224A27AC9F9FD9D052156 /* DisruptionStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC879F5272587329FD7D6297 /* DisruptionStatus.swift */; };
 		6489BD603790B594FC059342 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FEB84E4FAD7F551266AEB1E /* APIClient.swift */; };
 		66EA5820A6E1BFABD214450F /* TripCreationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70ED6174B2E99DD17E4E500B /* TripCreationView.swift */; };
 		671A3D529F037F4A18B0715F /* MainWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCABFB9F1F5CCAFC13C36B5D /* MainWindowView.swift */; };
@@ -40,6 +42,7 @@
 		7FBDC93959A94D66A2E444B0 /* SavedTrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = D021E21156BE55E9A05F1253 /* SavedTrip.swift */; };
 		88696BCFF9014676B9C71DB3 /* TimetableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B79AF9832ED9AEEFF6E3A3AD /* TimetableView.swift */; };
 		957DAEFC7A8198BD32EC8C9E /* WidgetViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65180135C9B73E709FDDF32B /* WidgetViews.swift */; };
+		968CC6FD72394E67DF450AF3 /* DisruptionStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC879F5272587329FD7D6297 /* DisruptionStatus.swift */; };
 		98696DA57BF1DD39CAB7D752 /* APIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F503CBCF1982BDBB02E1D672 /* APIModels.swift */; };
 		9D1A80B7F83739F5BEB73179 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D59B04EED209C6EC168B237A /* ContentView.swift */; };
 		9E89C8AE3754F32DAD39578A /* DepartureAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B69A2144296855F3E74B233D /* DepartureAttributes.swift */; };
@@ -133,6 +136,7 @@
 		D51A7C05E647D0220C9AAB8C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D59B04EED209C6EC168B237A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		D7AB968B989EE62C3CEFE843 /* All Aboard.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = "All Aboard.icon"; sourceTree = "<group>"; };
+		DC879F5272587329FD7D6297 /* DisruptionStatus.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DisruptionStatus.swift; sourceTree = "<group>"; };
 		DFADF151472CB4ABEF1EF92D /* LiveTripCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveTripCardView.swift; sourceTree = "<group>"; };
 		E0BC66E1F2DA02067FAFD4E2 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		EF5858531C15BF9AE011D1B0 /* AllAboardWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AllAboardWidgets.entitlements; sourceTree = "<group>"; };
@@ -288,6 +292,7 @@
 				F503CBCF1982BDBB02E1D672 /* APIModels.swift */,
 				D021E21156BE55E9A05F1253 /* SavedTrip.swift */,
 				A7E4414431597546BBBC0F46 /* TransportMode.swift */,
+				DC879F5272587329FD7D6297 /* DisruptionStatus.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -326,8 +331,6 @@
 			dependencies = (
 			);
 			name = AllAboardWidgets;
-			packageProductDependencies = (
-			);
 			productName = AllAboardWidgets;
 			productReference = 522F5A99861F33B665B6BAEF /* AllAboardWidgets.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -366,8 +369,6 @@
 				D1287071A85EC27547536610 /* PBXTargetDependency */,
 			);
 			name = AllAboardiOS;
-			packageProductDependencies = (
-			);
 			productName = AllAboardiOS;
 			productReference = CA3B00584652C4CCDD2FD249 /* AllAboardiOS.app */;
 			productType = "com.apple.product-type.application";
@@ -463,6 +464,7 @@
 				611EEBD1D860CD001AFFEACE /* TimeFormatting.swift in Sources */,
 				3DD2AD1F232876074912463E /* TransportMode.swift in Sources */,
 				957DAEFC7A8198BD32EC8C9E /* WidgetViews.swift in Sources */,
+				0AF7C4EA8EACE3D53EF67C36 /* DisruptionStatus.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -491,6 +493,7 @@
 				14A7A5B1A768110ED5F5D539 /* TripCreationViewModel.swift in Sources */,
 				5A897EB66AD58500098934BE /* TripDetailView.swift in Sources */,
 				469B06078DF4065107D9DC05 /* TripStore.swift in Sources */,
+				968CC6FD72394E67DF450AF3 /* DisruptionStatus.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -514,6 +517,7 @@
 				072989749F1A4B46A03487AF /* TimetableViewModel.swift in Sources */,
 				D44DB592CF98CD08CEEEE6FC /* TransportMode.swift in Sources */,
 				E3401AD6562E4E2DA6B5AF8A /* TripSetupView.swift in Sources */,
+				63D224A27AC9F9FD9D052156 /* DisruptionStatus.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -60,6 +60,12 @@ struct Journey: Codable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case rating, interchanges, legs
     }
+
+    /// A dedupe/scroll-anchor key stable across separate API calls, unlike `id`
+    /// (a fresh UUID minted on every decode).
+    var stableKey: String {
+        legs.first?.origin.departureTimePlanned ?? id.uuidString
+    }
 }
 
 struct Leg: Codable {
@@ -88,15 +94,20 @@ struct LegLocation: Codable {
 struct LegLocationProperties: Codable {
     let platform: String?
     let platformName: String?
+    /// Best-effort decode of TfNSW's (undocumented) realtime disruption status.
+    /// Not confirmed against a live cancellation yet — see RealtimeStatus.isCancelled.
+    let realtimeTripStatus: [String]?
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         platform = try container.decodeIfPresent(String.self, forKey: .platform)
         platformName = try container.decodeIfPresent(String.self, forKey: .platformName)
+        realtimeTripStatus = try container.decodeIfPresent([String].self, forKey: .realtimeTripStatus)
     }
 
     enum CodingKeys: String, CodingKey {
         case platform, platformName
+        case realtimeTripStatus = "RealtimeTripStatus"
     }
 }
 

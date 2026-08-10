@@ -1,8 +1,9 @@
 import SwiftUI
 import Sparkle
+import AppKit
 
 // Visual radius constants for consistent rounding
-private struct UIRadius {
+struct UIRadius {
     static let parentCard: CGFloat = 8    // large containers (main content, settings sheet)
     static let sheetContainer: CGFloat = 8 // outer settings sheet container
     static let sheetInset: CGFloat = 8      // sheet content padding from edges
@@ -12,7 +13,7 @@ private struct UIRadius {
 }
 
 // Reusable card styling for content surfaces
-private struct AppCardModifier: ViewModifier {
+struct AppCardModifier: ViewModifier {
     let cornerRadius: CGFloat
     func body(content: Content) -> some View {
         content
@@ -25,7 +26,7 @@ private struct AppCardModifier: ViewModifier {
     }
 }
 
-private extension View {
+extension View {
     func appCard(cornerRadius: CGFloat) -> some View {
         modifier(AppCardModifier(cornerRadius: cornerRadius))
     }
@@ -60,13 +61,39 @@ struct MainWindowView: View {
     @State private var showingAddTrip = false
     @State private var showingSettings = false
     @State private var journeyCache: [String: [Journey]] = [:]
+    @State private var fetchTask: Task<Void, Never>?
+    @State private var isLoadingEarlier = false
+    @State private var isLoadingLater = false
+    @State private var canLoadEarlier = true
+    @State private var canLoadLater = true
 
     // Drag reorder state
     @State private var draggingTripId: String?
-    @State private var dragCurrentIndex: Int = 0
-    @State private var dragAccumulated: CGFloat = 0
+    @State private var dragTranslation: CGFloat = 0
 
     private let rowHeight: CGFloat = 36 // 32pt button + 4pt spacing
+
+    /// Live preview of the sidebar order while dragging — computed from the real
+    /// saved order plus the in-progress drag, without mutating the store until drop.
+    private var displayedTrips: [SavedTrip] {
+        guard let draggingTripId,
+              let fromIndex = store.savedTrips.firstIndex(where: { $0.id == draggingTripId }) else {
+            return store.savedTrips
+        }
+        var trips = store.savedTrips
+        let dragged = trips.remove(at: fromIndex)
+        let offsetSlots = Int((dragTranslation / rowHeight).rounded())
+        let targetIndex = max(0, min(trips.count, fromIndex + offsetSlots))
+        trips.insert(dragged, at: targetIndex)
+        return trips
+    }
+
+    /// The sub-row-height pixel remainder, so the dragged card tracks the cursor smoothly
+    /// between the row-height increments that trigger a reflow of the other rows.
+    private var residualOffset: CGFloat {
+        let slot = (dragTranslation / rowHeight).rounded()
+        return dragTranslation - slot * rowHeight
+    }
 
     init(store: TripStore, selectionController: WindowSelectionController, updaterController: SPUStandardUpdaterController, onTripsChanged: (() -> Void)? = nil) {
         self.store = store
@@ -86,10 +113,8 @@ struct MainWindowView: View {
             sidebar
                 .frame(width: 220)
 
-            // Content card
             detail
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .appCard(cornerRadius: UIRadius.parentCard)
                 .padding(.trailing, 8)
                 .padding(.bottom, 8)
                 .padding(.top, 8)
@@ -127,7 +152,7 @@ struct MainWindowView: View {
         }
         .onChange(of: selection) { _, newVal in
             if case .trip = newVal {
-                Task { await fetchJourneys() }
+                beginFetch()
             }
         }
         .overlay {
@@ -203,8 +228,12 @@ struct MainWindowView: View {
             // Trip list with drag reorder
             ScrollView {
                 VStack(spacing: 4) {
-                    ForEach(Array(store.savedTrips.enumerated()), id: \.element.id) { index, trip in
+                    ForEach(Array(displayedTrips.enumerated()), id: \.element.id) { index, trip in
                         let isDragging = draggingTripId == trip.id
+
+                        if index == 1 || index == 3 {
+                            Divider().padding(.vertical, 2)
+                        }
 
                         AppButton(
                             "\(displayName(trip.origin.name)) \u{2192} \(displayName(trip.destination.name))",
@@ -214,44 +243,46 @@ struct MainWindowView: View {
                         ) {
                             selection = .trip(trip.id)
                         }
-                        .opacity(isDragging ? 0.5 : 1)
-                        .scaleEffect(isDragging ? 0.98 : 1)
+                        .opacity(isDragging ? 0.9 : 1)
+                        .scaleEffect(isDragging ? 1.03 : 1)
+                        .zIndex(isDragging ? 1 : 0)
+                        .shadow(color: .black.opacity(isDragging ? 0.22 : 0), radius: 8, y: 3)
+                        .offset(y: isDragging ? residualOffset : 0)
                         .gesture(
-                            DragGesture(minimumDistance: 6)
+                            DragGesture(minimumDistance: 4)
                                 .onChanged { value in
                                     if draggingTripId == nil {
                                         draggingTripId = trip.id
-                                        dragCurrentIndex = index
-                                        dragAccumulated = 0
+                                        dragTranslation = 0
                                     }
-                                    // Accumulate drag and check if we crossed a row threshold
-                                    let delta = value.translation.height - dragAccumulated
-                                    if delta > rowHeight / 2, dragCurrentIndex < store.savedTrips.count - 1 {
-                                        withAnimation(.easeInOut(duration: 0.15)) {
-                                            store.savedTrips.move(fromOffsets: IndexSet(integer: dragCurrentIndex), toOffset: dragCurrentIndex + 2)
+                                    let newTranslation = value.translation.height
+                                    let oldSlot = (dragTranslation / rowHeight).rounded()
+                                    let newSlot = (newTranslation / rowHeight).rounded()
+                                    if oldSlot != newSlot {
+                                        withAnimation(.interactiveSpring(response: 0.28, dampingFraction: 0.78)) {
+                                            dragTranslation = newTranslation
                                         }
-                                        dragCurrentIndex += 1
-                                        dragAccumulated += rowHeight
-                                    } else if delta < -rowHeight / 2, dragCurrentIndex > 0 {
-                                        withAnimation(.easeInOut(duration: 0.15)) {
-                                            store.savedTrips.move(fromOffsets: IndexSet(integer: dragCurrentIndex), toOffset: dragCurrentIndex - 1)
-                                        }
-                                        dragCurrentIndex -= 1
-                                        dragAccumulated -= rowHeight
+                                        NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+                                    } else {
+                                        dragTranslation = newTranslation
                                     }
                                 }
                                 .onEnded { _ in
+                                    let finalOrder = displayedTrips
                                     draggingTripId = nil
-                                    dragAccumulated = 0
-                                    store.persistOrder()
-                                    onTripsChanged?()
+                                    dragTranslation = 0
+                                    if finalOrder.map(\.id) != store.savedTrips.map(\.id) {
+                                        store.savedTrips = finalOrder
+                                        store.persistOrder()
+                                        onTripsChanged?()
+                                    }
                                 }
                         )
                         .contextMenu {
                             Button {
                                 store.reverseTrip(id: trip.id)
                                 onTripsChanged?()
-                                if case .trip(trip.id) = selection { Task { await fetchJourneys() } }
+                                if case .trip(trip.id) = selection { beginFetch() }
                             } label: {
                                 Label("Swap Direction", systemImage: "arrow.left.arrow.right")
                             }
@@ -303,14 +334,20 @@ struct MainWindowView: View {
                 journeys: journeys,
                 isLoading: isLoadingJourneys,
                 errorMessage: journeyError,
+                canLoadEarlier: canLoadEarlier,
+                canLoadLater: canLoadLater,
+                isLoadingEarlier: isLoadingEarlier,
+                isLoadingLater: isLoadingLater,
                 onSwap: {
                     store.reverseTrip(id: trip.id)
                     onTripsChanged?()
-                    Task { await fetchJourneys() }
+                    beginFetch()
                 },
                 onRefresh: {
-                    Task { await fetchJourneys() }
-                }
+                    beginFetch()
+                },
+                onLoadEarlier: { loadEarlier() },
+                onLoadLater: { loadLater() }
             )
         } else {
             emptyState
@@ -336,41 +373,156 @@ struct MainWindowView: View {
             .padding(.top, 4)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .appCard(cornerRadius: UIRadius.parentCard)
     }
 
     // MARK: - Data
 
-    private func fetchJourneys() async {
-        guard let trip = selectedTrip else { return }
+    /// A stable-ish dedupe key for a journey (Journey.id is a fresh UUID on every decode).
+    private func journeyKey(_ journey: Journey) -> String {
+        journey.legs.first?.origin.departureTimePlanned ?? UUID().uuidString
+    }
+
+    private func isCurrentSelection(_ trip: SavedTrip) -> Bool {
+        guard case .trip(let id) = selection else { return false }
+        return id == trip.id
+    }
+
+    /// Cancels any in-flight fetch and starts a fresh one for the current selection.
+    /// Clears stale data immediately (unless cached) so switching trips doesn't
+    /// leave the previous trip's departures on screen while the new ones load.
+    private func beginFetch() {
+        fetchTask?.cancel()
+        guard let trip = selectedTrip else {
+            journeys = []
+            return
+        }
 
         let cacheKey = "\(trip.origin.id)-\(trip.destination.id)"
+        canLoadEarlier = true
+        canLoadLater = true
+        isLoadingEarlier = false
+        isLoadingLater = false
 
-        // Show cached data instantly if available
         if let cached = journeyCache[cacheKey] {
             journeys = cached
             journeyError = nil
-            // Still refresh in background but don't show loading state
             isLoadingJourneys = false
         } else {
-            isLoadingJourneys = true
+            journeys = []
             journeyError = nil
+            isLoadingJourneys = true
         }
 
+        fetchTask = Task {
+            await loadInitial(trip: trip, cacheKey: cacheKey)
+        }
+    }
+
+    private func loadInitial(trip: SavedTrip, cacheKey: String) async {
         do {
             let fresh = try await APIClient.shared.planTrip(
                 originId: trip.origin.id,
                 destinationId: trip.destination.id,
-                maxJourneys: 12
+                maxJourneys: 8
             )
+            guard !Task.isCancelled, isCurrentSelection(trip) else { return }
             journeys = fresh
             journeyCache[cacheKey] = fresh
             lastUpdated = Date()
         } catch {
+            guard !Task.isCancelled, isCurrentSelection(trip) else { return }
             if journeys.isEmpty {
                 journeyError = error.localizedDescription
             }
         }
-        isLoadingJourneys = false
+        if isCurrentSelection(trip) {
+            isLoadingJourneys = false
+        }
+    }
+
+    /// Loads a page of departures that already left, anchored just before the
+    /// earliest one currently shown, and prepends them.
+    private func loadEarlier() {
+        guard let trip = selectedTrip, !isLoadingEarlier, canLoadEarlier,
+              let earliest = journeys.first,
+              let anchor = TimeFormatting.parseTime(earliest.legs.first?.origin.departureTimePlanned)
+        else { return }
+
+        isLoadingEarlier = true
+        let cacheKey = "\(trip.origin.id)-\(trip.destination.id)"
+
+        Task {
+            do {
+                let fresh = try await APIClient.shared.planTrip(
+                    originId: trip.origin.id,
+                    destinationId: trip.destination.id,
+                    date: anchor.addingTimeInterval(-60),
+                    isDepartureTime: false,
+                    maxJourneys: 6
+                )
+                if isCurrentSelection(trip) {
+                    let existingKeys = Set(journeys.map(journeyKey))
+                    let newOnes = fresh.filter { !existingKeys.contains(journeyKey($0)) }
+                    if newOnes.isEmpty {
+                        canLoadEarlier = false
+                    } else {
+                        journeys = sortedByDeparture(newOnes + journeys)
+                        journeyCache[cacheKey] = journeys
+                    }
+                }
+            } catch {
+                // Transient failure — leave canLoadEarlier as-is so scrolling again retries.
+            }
+            if isCurrentSelection(trip) {
+                isLoadingEarlier = false
+            }
+        }
+    }
+
+    /// Loads a page of upcoming departures beyond the latest one currently shown,
+    /// and appends them.
+    private func loadLater() {
+        guard let trip = selectedTrip, !isLoadingLater, canLoadLater,
+              let latest = journeys.last,
+              let anchor = TimeFormatting.parseTime(latest.legs.first?.origin.departureTimePlanned)
+        else { return }
+
+        isLoadingLater = true
+        let cacheKey = "\(trip.origin.id)-\(trip.destination.id)"
+
+        Task {
+            do {
+                let fresh = try await APIClient.shared.planTrip(
+                    originId: trip.origin.id,
+                    destinationId: trip.destination.id,
+                    date: anchor.addingTimeInterval(60),
+                    isDepartureTime: true,
+                    maxJourneys: 6
+                )
+                if isCurrentSelection(trip) {
+                    let existingKeys = Set(journeys.map(journeyKey))
+                    let newOnes = fresh.filter { !existingKeys.contains(journeyKey($0)) }
+                    if newOnes.isEmpty {
+                        canLoadLater = false
+                    } else {
+                        journeys = sortedByDeparture(journeys + newOnes)
+                        journeyCache[cacheKey] = journeys
+                    }
+                }
+            } catch {
+                // Transient failure — leave canLoadLater as-is so scrolling again retries.
+            }
+            if isCurrentSelection(trip) {
+                isLoadingLater = false
+            }
+        }
+    }
+
+    private func sortedByDeparture(_ journeys: [Journey]) -> [Journey] {
+        journeys.sorted {
+            ($0.legs.first?.origin.departureTimePlanned ?? "") < ($1.legs.first?.origin.departureTimePlanned ?? "")
+        }
     }
 
     private func displayName(_ name: String) -> String {

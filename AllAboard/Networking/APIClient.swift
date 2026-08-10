@@ -100,7 +100,7 @@ actor APIClient {
         let response: TripResponse = try await fetch(url: components.url!)
         let railModes = TransportMode.railModeIds
 
-        return (response.journeys ?? [])
+        let railOnly = (response.journeys ?? [])
             .filter { journey in
                 journey.legs.allSatisfy { leg in
                     guard let transport = leg.transportation else { return true }
@@ -108,11 +108,37 @@ actor APIClient {
                     return railModes.contains(mode)
                 }
             }
+
+        return Self.droppingSlowOutliers(railOnly)
             .sorted { a, b in
                 let aTime = a.legs.first?.origin.departureTimePlanned ?? ""
                 let bTime = b.legs.first?.origin.departureTimePlanned ?? ""
                 return aTime < bTime
             }
+    }
+
+    /// Drops journeys that take much longer than the fastest option in the same batch —
+    /// e.g. a route via an unusual interchange when a direct line covers the same trip
+    /// in a third of the time. Never drops below a single result.
+    private static func droppingSlowOutliers(_ journeys: [Journey], tolerance: Double = 1.5) -> [Journey] {
+        guard journeys.count > 1 else { return journeys }
+
+        func totalDuration(_ journey: Journey) -> Int {
+            var total = 0
+            for leg in journey.legs { total += leg.duration ?? 0 }
+            return total
+        }
+
+        let positiveDurations = journeys.map(totalDuration).filter { $0 > 0 }
+        guard let minDuration = positiveDurations.min() else { return journeys }
+        let maxAllowed = Double(minDuration) * tolerance
+
+        let filtered = journeys.filter { journey in
+            let duration = totalDuration(journey)
+            return duration <= 0 || Double(duration) <= maxAllowed
+        }
+
+        return filtered.isEmpty ? journeys : filtered
     }
 
     // MARK: - Private

@@ -9,6 +9,39 @@ private class MenuAction: NSObject {
     @objc func invoke() { block() }
 }
 
+/// A menu row view whose hover highlight is arbitrated by a `MenuRowHoverCoordinator`
+/// rather than relying solely on its own paired mouseEntered/mouseExited events.
+/// AppKit doesn't reliably deliver matched enter/exit pairs for NSTrackingArea inside
+/// NSMenu item views, which can leave stale rows stuck highlighted.
+private protocol HoverTrackable: AnyObject {
+    var isHovered: Bool { get set }
+}
+
+/// Ensures at most one menu row shows a hover highlight at a time, even if AppKit
+/// drops a mouseExited event for the previously hovered row.
+private class MenuRowHoverCoordinator {
+    private weak var currentRow: HoverTrackable?
+
+    func rowEntered(_ row: HoverTrackable) {
+        if let previous = currentRow, previous !== row {
+            previous.isHovered = false
+        }
+        currentRow = row
+        row.isHovered = true
+    }
+
+    func rowExited(_ row: HoverTrackable) {
+        row.isHovered = false
+        if currentRow === row {
+            currentRow = nil
+        }
+    }
+
+    func reset() {
+        currentRow = nil
+    }
+}
+
 class StatusBarController: NSObject, NSWindowDelegate {
     private struct PinnedRow: Equatable {
         let tripId: String
@@ -28,6 +61,15 @@ class StatusBarController: NSObject, NSWindowDelegate {
     private var menuItemActions: [AnyObject] = []
     /// The currently displayed trips menu, kept for in-place rebuilds
     private var activeMenu: NSMenu?
+    private let menuRowHoverCoordinator = MenuRowHoverCoordinator()
+    private let disruptionBadge = NSImageView()
+    /// When true, the automatic afternoon commute-home flip for the first saved trip
+    /// is manually toggled off/on for this menu session. Reset each time the menu is opened.
+    private var sessionFlipOverrideActive = false
+
+    private func effectiveFlipFirstTrip() -> Bool {
+        TripDirectionFlip.isAutoFlipActive() != sessionFlipOverrideActive
+    }
 
     init(store: TripStore, viewModel: MenuBarViewModel, updaterController: SPUStandardUpdaterController) {
         self.store = store
@@ -42,6 +84,13 @@ class StatusBarController: NSObject, NSWindowDelegate {
             button.target = self
             button.action = #selector(handleClick(_:))
             button.sendAction(on: [.leftMouseUp])
+
+            disruptionBadge.image = NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: "Disruption")
+            disruptionBadge.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 9, weight: .bold)
+            disruptionBadge.contentTintColor = .systemOrange
+            disruptionBadge.frame = NSRect(x: 8, y: 10, width: 11, height: 11)
+            disruptionBadge.isHidden = true
+            button.addSubview(disruptionBadge)
         }
 
         updateStatusBarButtonTitle()
@@ -64,7 +113,8 @@ class StatusBarController: NSObject, NSWindowDelegate {
     }
 
     @objc private func handleClick(_ sender: NSStatusBarButton) {
-        Task { @MainActor in await viewModel.refresh() }
+        sessionFlipOverrideActive = false
+        Task { @MainActor in await viewModel.refresh(flipFirstTrip: effectiveFlipFirstTrip()) }
         showTripsMenu()
     }
 
@@ -84,6 +134,7 @@ class StatusBarController: NSObject, NSWindowDelegate {
     private func buildTripsMenuContent(into menu: NSMenu) {
         menu.removeAllItems()
         menuItemActions = []
+        menuRowHoverCoordinator.reset()
 
         // Use store for trip names — reflects swaps immediately without waiting for a refresh
         let savedTrips = Array(store.savedTrips.prefix(3))
@@ -100,12 +151,25 @@ class StatusBarController: NSObject, NSWindowDelegate {
             for (index, savedTrip) in savedTrips.enumerated() {
                 if index > 0 { menu.addItem(.separator()) }
 
+                let isFirst = index == 0
+                var displayName = savedTrip.name
+                if isFirst && effectiveFlipFirstTrip() {
+                    displayName = flippedDirection(origin: savedTrip.origin, destination: savedTrip.destination).name
+                }
+
                 let headerItem = NSMenuItem()
-                let cleanName = savedTrip.name.replacingOccurrences(of: " Station", with: "")
-                headerItem.view = makeHeaderRow(tripName: cleanName, tripId: savedTrip.id)
+                let cleanName = displayName.replacingOccurrences(of: " Station", with: "")
+                headerItem.view = makeHeaderRow(tripName: cleanName, tripId: savedTrip.id, isAutoFlippable: isFirst)
                 menu.addItem(headerItem)
 
                 if let tripData = viewModel.tripsWithJourneys.first(where: { $0.id == savedTrip.id }) {
+                    if case .disrupted(let reason) = tripData.disruptionLevel {
+                        let bannerItem = NSMenuItem()
+                        bannerItem.view = makeDisruptionBanner(text: reason)
+                        bannerItem.isEnabled = false
+                        menu.addItem(bannerItem)
+                    }
+
                     if let error = tripData.error {
                         let item = NSMenuItem(title: "Error: \(error)", action: nil, keyEquivalent: "")
                         item.isEnabled = false
@@ -178,15 +242,17 @@ class StatusBarController: NSObject, NSWindowDelegate {
 
         // Realtime status from planned vs estimated departure
         var realtimeStatus = ""
-        let originLoc = transportLeg?.origin ?? firstLeg?.origin
-        if let planned = TimeFormatting.parseTime(originLoc?.departureTimePlanned),
-           let estimated = TimeFormatting.parseTime(originLoc?.departureTimeEstimated) {
-            let diffMins = Int(round(estimated.timeIntervalSince(planned) / 60))
-            if diffMins <= 0 {
-                realtimeStatus = "On time"
-            } else {
-                realtimeStatus = "\(diffMins) min\(diffMins == 1 ? "" : "s") late"
-            }
+        switch journey.realtimeStatus {
+        case .onTime:
+            realtimeStatus = "On time"
+        case .delayed(let minutes):
+            realtimeStatus = "\(minutes) min\(minutes == 1 ? "" : "s") late"
+        case .cancelled:
+            realtimeStatus = "Cancelled"
+        case .realtimeUnavailable:
+            realtimeStatus = "Realtime unavailable"
+        case .unknown:
+            realtimeStatus = ""
         }
 
         let item = NSMenuItem()
@@ -200,7 +266,8 @@ class StatusBarController: NSObject, NSWindowDelegate {
             timeUntil: timeUntil,
             subtitle: subtitle,
             realtimeStatus: realtimeStatus,
-            isPinned: isPinned
+            isPinned: isPinned,
+            isCancelled: journey.realtimeStatus.isCancelled
         ) { [weak self] in
             self?.togglePinnedRow(
                 tripId: tripId,
@@ -222,7 +289,7 @@ class StatusBarController: NSObject, NSWindowDelegate {
         let rootView = MainWindowView(store: store, selectionController: selectionController, updaterController: updaterController) { [weak self] in
             guard let self else { return }
             Task { @MainActor in
-                await self.viewModel.refresh()
+                await self.viewModel.refresh(flipFirstTrip: self.effectiveFlipFirstTrip())
                 self.updateStatusBarButtonTitle()
             }
         }
@@ -334,6 +401,8 @@ class StatusBarController: NSObject, NSWindowDelegate {
 
     private func updateStatusBarButtonTitle() {
         guard let button = statusItem.button else { return }
+
+        disruptionBadge.isHidden = !viewModel.tripsWithJourneys.hasAnyDisruption
 
         // Find the first FUTURE departure from the first saved trip
         guard let firstTrip = viewModel.tripsWithJourneys.first else {
@@ -452,10 +521,11 @@ class StatusBarController: NSObject, NSWindowDelegate {
     // MARK: - Menu Header with Swap Button
 
     private func makeTextMenuRow(title: String, action: MenuAction) -> NSView {
-        class HoverTextRow: NSView {
+        class HoverTextRow: NSView, HoverTrackable {
             private var tracking: NSTrackingArea?
             var isHovered = false { didSet { needsDisplay = true } }
             var onSelect: (() -> Void)?
+            weak var hoverCoordinator: MenuRowHoverCoordinator?
 
             override func updateTrackingAreas() {
                 super.updateTrackingAreas()
@@ -463,8 +533,8 @@ class StatusBarController: NSObject, NSWindowDelegate {
                 tracking = NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self)
                 addTrackingArea(tracking!)
             }
-            override func mouseEntered(with event: NSEvent) { isHovered = true }
-            override func mouseExited(with event: NSEvent) { isHovered = false }
+            override func mouseEntered(with event: NSEvent) { hoverCoordinator?.rowEntered(self) }
+            override func mouseExited(with event: NSEvent) { hoverCoordinator?.rowExited(self) }
             override func mouseDown(with event: NSEvent) { onSelect?() }
             override func draw(_ dirtyRect: NSRect) {
                 super.draw(dirtyRect)
@@ -479,6 +549,7 @@ class StatusBarController: NSObject, NSWindowDelegate {
 
         let container = HoverTextRow()
         container.translatesAutoresizingMaskIntoConstraints = false
+        container.hoverCoordinator = menuRowHoverCoordinator
         container.onSelect = { action.invoke() }
 
         let label = NSTextField(labelWithString: title)
@@ -497,7 +568,7 @@ class StatusBarController: NSObject, NSWindowDelegate {
         return container
     }
 
-    private func makeHeaderRow(tripName: String, tripId: String) -> NSView {
+    private func makeHeaderRow(tripName: String, tripId: String, isAutoFlippable: Bool) -> NSView {
         let container = NSView()
         container.translatesAutoresizingMaskIntoConstraints = false
 
@@ -522,10 +593,16 @@ class StatusBarController: NSObject, NSWindowDelegate {
 
         let action = MenuAction { [weak self] in
             guard let self, let menu = self.activeMenu else { return }
-            self.store.reverseTrip(id: tripId)
+            if isAutoFlippable {
+                // The first trip's direction is managed automatically by time of day;
+                // toggle a session-only override instead of persisting a reversed direction.
+                self.sessionFlipOverrideActive.toggle()
+            } else {
+                self.store.reverseTrip(id: tripId)
+            }
             self.buildTripsMenuContent(into: menu)
             Task { @MainActor in
-                await self.viewModel.refresh()
+                await self.viewModel.refresh(flipFirstTrip: self.effectiveFlipFirstTrip())
                 guard let menu = self.activeMenu else { return }
                 self.buildTripsMenuContent(into: menu)
             }
@@ -553,6 +630,40 @@ class StatusBarController: NSObject, NSWindowDelegate {
         return container
     }
 
+    private func makeDisruptionBanner(text: String) -> NSView {
+        let container = NSView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+
+        let icon = NSImageView(image: NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: nil)!)
+        icon.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 11, weight: .medium)
+        icon.contentTintColor = .systemOrange
+        icon.translatesAutoresizingMaskIntoConstraints = false
+
+        let label = NSTextField(labelWithString: text)
+        label.font = .systemFont(ofSize: 11, weight: .medium)
+        label.textColor = .systemOrange
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.lineBreakMode = .byTruncatingTail
+
+        container.addSubview(icon)
+        container.addSubview(label)
+
+        let hPad: CGFloat = 12
+        NSLayoutConstraint.activate([
+            icon.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: hPad),
+            icon.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+
+            label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 6),
+            label.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor, constant: -hPad),
+            label.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+
+            container.heightAnchor.constraint(equalToConstant: 24),
+            container.widthAnchor.constraint(equalToConstant: 340)
+        ])
+
+        return container
+    }
+
     // MARK: - Menu Row View
 
     private func makeMenuRow(
@@ -562,13 +673,15 @@ class StatusBarController: NSObject, NSWindowDelegate {
         subtitle: String,
         realtimeStatus: String,
         isPinned: Bool,
+        isCancelled: Bool,
         onSelect: @escaping () -> Void
     ) -> NSView {
-        class HoverRowView: NSView {
+        class HoverRowView: NSView, HoverTrackable {
             private var tracking: NSTrackingArea?
             var isHovered: Bool = false { didSet { needsDisplay = true } }
             var isPinned: Bool = false { didSet { needsDisplay = true } }
             var onSelect: (() -> Void)?
+            weak var hoverCoordinator: MenuRowHoverCoordinator?
 
             override func updateTrackingAreas() {
                 super.updateTrackingAreas()
@@ -577,8 +690,8 @@ class StatusBarController: NSObject, NSWindowDelegate {
                 tracking = NSTrackingArea(rect: .zero, options: options, owner: self, userInfo: nil)
                 addTrackingArea(tracking!)
             }
-            override func mouseEntered(with event: NSEvent) { isHovered = true }
-            override func mouseExited(with event: NSEvent) { isHovered = false }
+            override func mouseEntered(with event: NSEvent) { hoverCoordinator?.rowEntered(self) }
+            override func mouseExited(with event: NSEvent) { hoverCoordinator?.rowExited(self) }
             override func mouseDown(with event: NSEvent) {
                 onSelect?()
             }
@@ -597,6 +710,7 @@ class StatusBarController: NSObject, NSWindowDelegate {
 
         let container = HoverRowView()
         container.translatesAutoresizingMaskIntoConstraints = false
+        container.hoverCoordinator = menuRowHoverCoordinator
         container.isPinned = isPinned
         container.onSelect = onSelect
 
@@ -631,10 +745,18 @@ class StatusBarController: NSObject, NSWindowDelegate {
         statusLabel.font = .systemFont(ofSize: 11, weight: .medium)
         statusLabel.alignment = .right
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
-        if realtimeStatus.hasSuffix("late") {
+        if realtimeStatus.hasSuffix("late") || realtimeStatus == "Cancelled" {
             statusLabel.textColor = .systemRed
         } else {
             statusLabel.textColor = .secondaryLabelColor
+        }
+
+        if isCancelled {
+            for label in [timesLabel, untilLabel, serviceLabel, statusLabel] {
+                let attributed = NSMutableAttributedString(attributedString: label.attributedStringValue)
+                attributed.addAttribute(.strikethroughStyle, value: NSUnderlineStyle.single.rawValue, range: NSRange(location: 0, length: attributed.length))
+                label.attributedStringValue = attributed
+            }
         }
 
         container.addSubview(timesLabel)

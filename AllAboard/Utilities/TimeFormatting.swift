@@ -56,6 +56,21 @@ enum TimeFormatting {
         return "\(hours) hr \(mins) min"
     }
 
+    /// "Just left", "3 min ago", "1 hr 15 min ago"
+    static func formatTimeAgo(_ isoString: String?) -> String {
+        guard let date = parseTime(isoString) else { return "" }
+        let diffMins = Int(round(-date.timeIntervalSinceNow / 60))
+
+        if diffMins <= 0 { return "Just left" }
+        if diffMins == 1 { return "1 min ago" }
+        if diffMins < 60 { return "\(diffMins) min ago" }
+
+        let hours = diffMins / 60
+        let mins = diffMins % 60
+        if mins == 0 { return (hours == 1 ? "1 hr" : "\(hours) hrs") + " ago" }
+        return "\(hours) hr \(mins) min ago"
+    }
+
     /// "45 min", "1h 30m"
     static func formatDuration(_ seconds: Int) -> String {
         let minutes = seconds / 60
