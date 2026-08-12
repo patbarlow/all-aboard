@@ -662,14 +662,14 @@
 				CODE_SIGN_ENTITLEMENTS = AllAboard/AllAboard.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 113;
+				CURRENT_PROJECT_VERSION = 115;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = AllAboard/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.6.0;
+				MARKETING_VERSION = 1.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.allaboard.app;
 				SDKROOT = macosx;
 			};
@@ -682,14 +682,14 @@
 				CODE_SIGN_ENTITLEMENTS = AllAboard/AllAboard.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 113;
+				CURRENT_PROJECT_VERSION = 115;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = AllAboard/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.6.0;
+				MARKETING_VERSION = 1.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.allaboard.app;
 				SDKROOT = macosx;
 			};
@@ -700,7 +700,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = AllAboardWidgets/AllAboardWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 113;
+				CURRENT_PROJECT_VERSION = 115;
 				DEVELOPMENT_TEAM = T544U3WVL6;
 				INFOPLIST_FILE = AllAboardWidgets/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -709,7 +709,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.6.0;
+				MARKETING_VERSION = 1.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = app.yap.YapIOS.Widgets;
 				PRODUCT_NAME = AllAboardWidgets;
 				SDKROOT = iphoneos;
@@ -724,7 +724,7 @@
 				CODE_SIGN_ENTITLEMENTS = AllAboardiOS/AllAboardiOS.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 113;
+				CURRENT_PROJECT_VERSION = 115;
 				DEVELOPMENT_TEAM = T544U3WVL6;
 				INFOPLIST_FILE = AllAboardiOS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -732,7 +732,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.6.0;
+				MARKETING_VERSION = 1.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = app.yap.YapIOS;
 				PRODUCT_NAME = "All Aboard";
 				SDKROOT = iphoneos;
@@ -745,7 +745,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = AllAboardWidgets/AllAboardWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 113;
+				CURRENT_PROJECT_VERSION = 115;
 				DEVELOPMENT_TEAM = T544U3WVL6;
 				INFOPLIST_FILE = AllAboardWidgets/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -754,7 +754,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.6.0;
+				MARKETING_VERSION = 1.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = app.yap.YapIOS.Widgets;
 				PRODUCT_NAME = AllAboardWidgets;
 				SDKROOT = iphoneos;
@@ -769,7 +769,7 @@
 				CODE_SIGN_ENTITLEMENTS = AllAboardiOS/AllAboardiOS.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 113;
+				CURRENT_PROJECT_VERSION = 115;
 				DEVELOPMENT_TEAM = T544U3WVL6;
 				INFOPLIST_FILE = AllAboardiOS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -777,7 +777,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.6.0;
+				MARKETING_VERSION = 1.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = app.yap.YapIOS;
 				PRODUCT_NAME = "All Aboard";
 				SDKROOT = iphoneos;
