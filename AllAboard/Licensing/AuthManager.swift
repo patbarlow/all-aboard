@@ -5,8 +5,6 @@ struct AuthUser: Codable {
     let id: String
     let email: String
     let plan: String
-
-    var isPurchased: Bool { plan == "pro" }
 }
 
 class AuthManager {
@@ -100,24 +98,6 @@ class AuthManager {
         guard let user = try? JSONDecoder().decode(AuthUser.self, from: data) else { return cachedUser }
         cacheUser(user)
         return user
-    }
-
-    // MARK: - Checkout
-
-    func checkoutURL() async throws -> URL {
-        guard let token = sessionToken else { throw AuthError.notSignedIn }
-        var request = URLRequest(url: URL(string: "\(Self.baseURL)/v1/stripe/checkout")!)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            throw AuthError.server("Could not start checkout. Please try again.")
-        }
-        struct CheckoutResponse: Decodable { let url: String }
-        let body = try JSONDecoder().decode(CheckoutResponse.self, from: data)
-        guard let url = URL(string: body.url) else { throw AuthError.server("Invalid checkout URL") }
-        return url
     }
 
     // MARK: - Sign out

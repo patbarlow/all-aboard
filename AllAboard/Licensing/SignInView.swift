@@ -10,7 +10,7 @@ struct SignInView: View {
     @State private var errorMessage = ""
     @FocusState private var focused: Field?
 
-    enum Step { case email, otp, subscribe }
+    enum Step { case email, otp }
     enum Field { case email, otp }
 
     var body: some View {
@@ -40,8 +40,6 @@ struct SignInView: View {
                     emailForm
                 case .otp:
                     otpForm
-                case .subscribe:
-                    subscribeForm
                 }
 
                 if !errorMessage.isEmpty {
@@ -61,7 +59,6 @@ struct SignInView: View {
         switch step {
         case .email: return "Enter your email to sign in or create an account."
         case .otp: return "Check \(email) for a 6-digit code."
-        case .subscribe: return "A one-time purchase is required to use All Aboard."
         }
     }
 
@@ -136,35 +133,6 @@ struct SignInView: View {
         }
     }
 
-    private var subscribeForm: some View {
-        VStack(spacing: 12) {
-            Button(action: { Task { await openCheckout() } }) {
-                Group {
-                    if isWorking {
-                        HStack(spacing: 6) { ProgressView().controlSize(.small); Text("Opening…") }
-                    } else {
-                        Text("Buy All Aboard — $5 →")
-                    }
-                }
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .disabled(isWorking)
-
-            Button("Already purchased? Check status") { Task { await checkPurchase() } }
-                .buttonStyle(.borderless)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .disabled(isWorking)
-
-            Button("Sign out") { AuthManager.shared.signOut(); step = .email; email = ""; code = "" }
-                .buttonStyle(.borderless)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-    }
-
     // MARK: - Actions
 
     private func sendCode() async {
@@ -190,37 +158,10 @@ struct SignInView: View {
         errorMessage = ""
         defer { isWorking = false }
         do {
-            let result = try await AuthManager.shared.verify(email: email, code: code)
-            if result.user.isPurchased {
-                onSignedIn()
-            } else {
-                step = .subscribe
-            }
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    private func openCheckout() async {
-        isWorking = true
-        errorMessage = ""
-        defer { isWorking = false }
-        do {
-            let url = try await AuthManager.shared.checkoutURL()
-            NSWorkspace.shared.open(url)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    private func checkPurchase() async {
-        isWorking = true
-        errorMessage = ""
-        defer { isWorking = false }
-        if let user = await AuthManager.shared.refresh(), user.isPurchased {
+            _ = try await AuthManager.shared.verify(email: email, code: code)
             onSignedIn()
-        } else {
-            errorMessage = "No active license found. Complete your purchase and try again."
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 }

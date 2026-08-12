@@ -40,7 +40,6 @@ app.all("*", async (c) => {
 
   const user = await getUser(c.env.DB, userId);
   if (!user) return c.json({ error: "user_not_found" }, 401);
-  if (user.plan !== "pro") return c.json({ error: "license_required" }, 403);
 
   const url = new URL(c.req.url);
   const path = url.pathname;

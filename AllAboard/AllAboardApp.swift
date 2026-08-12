@@ -9,7 +9,13 @@ extension Notification.Name {
 enum AppSettings {
     static let showDepartureTimeKey = "show-departure-time-menu-bar"
     static let showCountdownKey = "show-countdown-menu-bar"
+    static let hasCompletedOnboardingKey = "has-completed-onboarding"
     static let feedURL = "https://raw.githubusercontent.com/patbarlow/all-aboard/main/appcast.xml"
+
+    static var hasCompletedOnboarding: Bool {
+        get { UserDefaults.standard.bool(forKey: hasCompletedOnboardingKey) }
+        set { UserDefaults.standard.set(newValue, forKey: hasCompletedOnboardingKey) }
+    }
 
     static var showDepartureTimeInMenuBar: Bool {
         get { UserDefaults.standard.bool(forKey: showDepartureTimeKey) }
@@ -58,6 +64,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     lazy var viewModel = MenuBarViewModel(store: store)
     private var statusBarController: StatusBarController?
     private var activationWindow: NSWindow?
+    private var onboardingWindow: NSWindow?
 
     private let updateFeedDelegate = UpdateFeedDelegate()
     let updaterController: SPUStandardUpdaterController
@@ -99,12 +106,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func startApp() async {
         await AuthManager.shared.refresh()
-        await MainActor.run { launchApp() }
+        await MainActor.run { proceedPastSignIn() }
+    }
+
+    private func proceedPastSignIn() {
+        if AppSettings.hasCompletedOnboarding {
+            launchApp()
+        } else {
+            showOnboardingWindow()
+        }
     }
 
     func launchApp() {
         activationWindow?.close()
         activationWindow = nil
+        onboardingWindow?.close()
+        onboardingWindow = nil
+        revealMenuBarIcon()
+    }
+
+    /// Creates the real menu bar status item without closing any windows —
+    /// used during onboarding so the toggles on the menu bar tip step have
+    /// a live icon to affect, before onboarding formally finishes.
+    private func revealMenuBarIcon() {
         if statusBarController == nil {
             statusBarController = StatusBarController(store: store, viewModel: viewModel, updaterController: updaterController)
             viewModel.startAutoRefreshIfNeeded()
@@ -113,7 +137,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showSignInWindow() {
         let view = SignInView { [weak self] in
-            self?.launchApp()
+            self?.proceedPastSignIn()
         }
         let hosting = NSHostingView(rootView: view)
         hosting.frame = NSRect(x: 0, y: 0, width: 340, height: hosting.fittingSize.height)
@@ -129,6 +153,37 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.contentView = hosting
         window.center()
         activationWindow = window
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func showOnboardingWindow() {
+        activationWindow?.close()
+        activationWindow = nil
+
+        let view = OnboardingView(store: store, menuBarViewModel: viewModel, onContinueToMenuBarTip: { [weak self] in
+            self?.revealMenuBarIcon()
+        }) { [weak self] in
+            AppSettings.hasCompletedOnboarding = true
+            self?.launchApp()
+        }
+        let hosting = NSHostingView(rootView: view)
+        hosting.frame = NSRect(x: 0, y: 0, width: 360, height: hosting.fittingSize.height)
+
+        let window = NSWindow(
+            contentRect: hosting.frame,
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "All Aboard"
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.backgroundColor = AppColors.sidebarBackgroundNS
+        window.isReleasedWhenClosed = false
+        window.contentView = hosting
+        window.center()
+        onboardingWindow = window
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }

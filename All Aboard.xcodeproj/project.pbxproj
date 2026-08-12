@@ -21,6 +21,7 @@
 		3D440762EB63242BA7110BA6 /* StopSearchScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9209059B5C915FC559C4D75 /* StopSearchScreen.swift */; };
 		3DD2AD1F232876074912463E /* TransportMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E4414431597546BBBC0F46 /* TransportMode.swift */; };
 		46821C70F5C77DC2FCF4273B /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0BC66E1F2DA02067FAFD4E2 /* SignInView.swift */; };
+		E874B164CC0C97E7584F1637 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504B3F23D3701988F1797CB7 /* OnboardingView.swift */; };
 		469B06078DF4065107D9DC05 /* TripStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6049F044EF96494F70E42A /* TripStore.swift */; };
 		4A85147F9AD05F687BC91C13 /* ShowNextTrainsIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8772109573113D4B04AD9A /* ShowNextTrainsIntent.swift */; };
 		4B59BC3E93FD325B6B196F59 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FEB84E4FAD7F551266AEB1E /* APIClient.swift */; };
@@ -139,6 +140,7 @@
 		DC879F5272587329FD7D6297 /* DisruptionStatus.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DisruptionStatus.swift; sourceTree = "<group>"; };
 		DFADF151472CB4ABEF1EF92D /* LiveTripCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveTripCardView.swift; sourceTree = "<group>"; };
 		E0BC66E1F2DA02067FAFD4E2 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
+		504B3F23D3701988F1797CB7 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		EF5858531C15BF9AE011D1B0 /* AllAboardWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AllAboardWidgets.entitlements; sourceTree = "<group>"; };
 		F503CBCF1982BDBB02E1D672 /* APIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIModels.swift; sourceTree = "<group>"; };
 		F6ADA024A62CE2B81A9CDEFD /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -302,6 +304,7 @@
 			children = (
 				9D63788DEEBCFACB7645234A /* AuthManager.swift */,
 				E0BC66E1F2DA02067FAFD4E2 /* SignInView.swift */,
+				504B3F23D3701988F1797CB7 /* OnboardingView.swift */,
 			);
 			path = Licensing;
 			sourceTree = "<group>";
@@ -486,6 +489,7 @@
 				09EA7924857FDE70EB0BAB98 /* SavedTrip.swift in Sources */,
 				BBC837BDAD1986A8E297CC8E /* SidebarItem.swift in Sources */,
 				46821C70F5C77DC2FCF4273B /* SignInView.swift in Sources */,
+				E874B164CC0C97E7584F1637 /* OnboardingView.swift in Sources */,
 				CF772E19B165CB98128AA638 /* StatusBarController.swift in Sources */,
 				F2E55E4A3B3A658C1E894E83 /* TimeFormatting.swift in Sources */,
 				7DC9AE333487CE0C1D4323D1 /* TransportMode.swift in Sources */,

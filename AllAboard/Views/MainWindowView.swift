@@ -686,33 +686,6 @@ private struct SettingsSheet: View {
                 .background(AppColors.cardBackground, in: RoundedRectangle(cornerRadius: UIRadius.innerTile))
             }
 
-            // License status
-            if let user = AuthManager.shared.cachedUser {
-                if user.isPurchased {
-                    HStack(spacing: 8) {
-                        Image(systemName: "checkmark.seal.fill")
-                            .foregroundStyle(.green)
-                            .font(.system(size: 14))
-                        Text("Purchased")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(AppColors.primaryText)
-                    }
-                } else {
-                    HStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.circle.fill")
-                            .foregroundStyle(.orange)
-                            .font(.system(size: 14))
-                        Text("No active license")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(AppColors.primaryText)
-                    }
-
-                    AppButton("Buy — $5 \u{2192}", variant: .secondary, fullWidth: true) {
-                        Task { await openCheckout() }
-                    }
-                }
-            }
-
             Divider()
 
             VStack(alignment: .leading, spacing: 8) {
@@ -769,6 +742,7 @@ private struct SettingsSheet: View {
                         .font(.system(size: 13))
                         .foregroundStyle(AppColors.primaryText)
                         .scrollContentBackground(.hidden)
+                        .padding(8)
                         .background(AppColors.cardBackground)
                         .clipShape(RoundedRectangle(cornerRadius: UIRadius.innerTile))
                         .overlay(
@@ -833,11 +807,6 @@ private struct SettingsSheet: View {
         } catch {
             feedbackState = .error("Couldn't send feedback. Check your connection.")
         }
-    }
-
-    private func openCheckout() async {
-        guard let url = try? await AuthManager.shared.checkoutURL() else { return }
-        NSWorkspace.shared.open(url)
     }
 
     // MARK: - Keyboard Shortcuts Settings
